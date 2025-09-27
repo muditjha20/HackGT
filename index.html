@@ -4,63 +4,111 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bystander Coach VR Training</title>
-    <!-- A-Frame 1.5.0 CDN -->
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <!-- Web Speech API polyfill for better browser support -->
     <script src="https://cdn.jsdelivr.net/npm/speech-recognition-polyfill@0.1.4/dist/speech-recognition.min.js"></script>
     <style>
-        /* 2D UI elements */
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        
         #micPermission {
             position: absolute;
             bottom: 20px;
             left: 20px;
-            padding: 10px 15px;
-            background: rgba(0, 100, 200, 0.8);
+            padding: 12px 18px;
+            background: rgba(0, 100, 200, 0.9);
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
             z-index: 1000;
             font-size: 16px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
         }
         
         #micStatus {
             position: absolute;
-            bottom: 60px;
+            bottom: 70px;
             left: 20px;
             color: white;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 5px 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 12px;
             border-radius: 5px;
             z-index: 1000;
             font-size: 14px;
+            backdrop-filter: blur(5px);
         }
         
-        /* Hidden canvas for PNG export */
+        #loadingScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1a1a2e;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            font-size: 24px;
+        }
+        
+        .pulse {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        
         #exportCanvas {
             display: none;
+        }
+        
+        #hint {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 5px;
+            z-index: 1000;
+            font-size: 16px;
+            text-align: center;
+            backdrop-filter: blur(5px);
+            max-width: 80%;
         }
     </style>
 </head>
 <body>
-    <!-- Hidden canvas for exporting feedback card as PNG -->
+    <div id="loadingScreen">
+        <div>Loading Bystander Coach VR Training</div>
+        <div class="pulse">Please wait...</div>
+    </div>
+    
     <canvas id="exportCanvas" width="800" height="600"></canvas>
     
-    <!-- 2D UI elements -->
-    <button id="micPermission">Enable Mic</button>
-    <div id="micStatus">Mic: Disabled</div>
+    <button id="micPermission">Enable Microphone</button>
+    <div id="micStatus">Microphone: Disabled</div>
+    <div id="hint">Point at buttons with your controller and click to select responses</div>
     
-    <!-- A-Frame VR Scene -->
     <a-scene 
-        background="color: #87CEEB" 
+        background="color: #2c3e50" 
         webxr="requiredFeatures: local-floor; optionalFeatures: hand-tracking"
-        xr-mode-ui="enabled: true">
+        xr-mode-ui="enabled: true"
+        loading-screen="enabled: false">
         
-        <!-- Camera Rig with controllers and gaze cursor -->
+        <!-- Camera Rig -->
         <a-entity id="rig" movement-controls="speed: 0.5">
-            <!-- Camera -->
             <a-camera id="camera" position="0 1.6 0">
-                <!-- Gaze cursor for desktop/mobile fallback -->
                 <a-cursor 
                     id="gazeCursor"
                     object3D="position: 0 0 -1"
@@ -73,12 +121,11 @@
             <a-entity 
                 laser-controls="hand: left" 
                 raycaster="objects: .clickable"
-                line="color: blue; opacity: 0.5">
-                <!-- Hover indicator for left controller -->
+                line="color: #3498db; opacity: 0.7">
                 <a-entity 
                     class="hover-indicator"
-                    geometry="primitive: sphere; radius: 0.01"
-                    material="color: yellow; shader: flat"
+                    geometry="primitive: sphere; radius: 0.015"
+                    material="color: #f1c40f; shader: flat"
                     visible="false">
                 </a-entity>
             </a-entity>
@@ -87,74 +134,371 @@
             <a-entity 
                 laser-controls="hand: right" 
                 raycaster="objects: .clickable"
-                line="color: blue; opacity: 0.5">
-                <!-- Hover indicator for right controller -->
+                line="color: #3498db; opacity: 0.7">
                 <a-entity 
                     class="hover-indicator"
-                    geometry="primitive: sphere; radius: 0.01"
-                    material="color: yellow; shader: flat"
+                    geometry="primitive: sphere; radius: 0.015"
+                    material="color: #f1c40f; shader: flat"
                     visible="false">
                 </a-entity>
             </a-entity>
         </a-entity>
         
         <!-- Lighting -->
-        <a-light type="ambient" color="#BBB" intensity="0.5"></a-light>
-        <a-light type="directional" color="#FFF" intensity="0.8" position="-1 2 1"></a-light>
+        <a-light type="ambient" color="#BBB" intensity="0.6"></a-light>
+        <a-light type="directional" color="#FFF" intensity="0.9" position="-1 3 1" cast-shadow="true"></a-light>
+        <a-light type="point" color="#e67e22" intensity="0.5" position="2 3 -3"></a-light>
         
-        <!-- Ground plane -->
-        <a-plane 
-            position="0 0 0" 
-            rotation="-90 0 0" 
-            width="20" 
-            height="20" 
-            color="#7BC8A4" 
-            shadow="receive: true">
-        </a-plane>
+        <!-- Environment: Bus Interior -->
+        <a-entity id="busEnvironment">
+            <!-- Bus floor -->
+            <a-plane 
+                position="0 0 0" 
+                rotation="-90 0 0" 
+                width="10" 
+                height="20" 
+                color="#7f8c8d" 
+                shadow="receive: true"
+                roughness="0.8">
+            </a-plane>
+            
+            <!-- Bus ceiling -->
+            <a-plane 
+                position="0 3.5 0" 
+                rotation="90 0 0" 
+                width="10" 
+                height="20" 
+                color="#34495e" 
+                roughness="0.7">
+            </a-plane>
+            
+            <!-- Bus left wall -->
+            <a-plane 
+                position="-5 1.75 0" 
+                rotation="0 90 0" 
+                width="7" 
+                height="3.5" 
+                color="#2c3e50" 
+                roughness="0.6">
+            </a-plane>
+            
+            <!-- Bus right wall -->
+            <a-plane 
+                position="5 1.75 0" 
+                rotation="0 -90 0" 
+                width="7" 
+                height="3.5" 
+                color="#2c3e50" 
+                roughness="0.6">
+            </a-plane>
+            
+            <!-- Bus back wall -->
+            <a-plane 
+                position="0 1.75 -10" 
+                rotation="0 0 0" 
+                width="10" 
+                height="3.5" 
+                color="#2c3e50" 
+                roughness="0.6">
+            </a-plane>
+            
+            <!-- Bus front (with windshield) -->
+            <a-plane 
+                position="0 1.75 10" 
+                rotation="0 180 0" 
+                width="10" 
+                height="3.5" 
+                color="#2c3e50" 
+                roughness="0.6">
+                <!-- Windshield -->
+                <a-plane 
+                    position="0 0.5 0.1" 
+                    rotation="0 0 0" 
+                    width="6" 
+                    height="1.5" 
+                    color="#3498db" 
+                    opacity="0.3">
+                </a-plane>
+            </a-plane>
+            
+            <!-- Bus seats -->
+            <a-entity id="busSeats">
+                <!-- Driver seat -->
+                <a-box 
+                    position="-2 0.5 8" 
+                    width="1" 
+                    height="1" 
+                    depth="1" 
+                    color="#c0392b"
+                    roughness="0.7">
+                </a-box>
+                
+                <!-- Passenger seats (two rows) -->
+                <a-box 
+                    position="-2 0.5 5" 
+                    width="1" 
+                    height="1" 
+                    depth="1" 
+                    color="#16a085"
+                    roughness="0.7">
+                </a-box>
+                
+                <a-box 
+                    position="2 0.5 5" 
+                    width="1" 
+                    height="1" 
+                    depth="1" 
+                    color="#16a085"
+                    roughness="0.7">
+                </a-box>
+                
+                <a-box 
+                    position="-2 0.5 2" 
+                    width="1" 
+                    height="1" 
+                    depth="1" 
+                    color="#16a085"
+                    roughness="0.7">
+                </a-box>
+                
+                <a-box 
+                    position="2 0.5 2" 
+                    width="1" 
+                    height="1" 
+                    depth="1" 
+                    color="#16a085"
+                    roughness="0.7">
+                </a-box>
+            </a-entity>
+            
+            <!-- Bus details -->
+            <a-entity id="busDetails">
+                <!-- Handrails -->
+                <a-cylinder 
+                    position="-3 1.5 0" 
+                    radius="0.03" 
+                    height="3" 
+                    color="#e74c3c"
+                    rotation="0 0 90">
+                </a-cylinder>
+                
+                <a-cylinder 
+                    position="3 1.5 0" 
+                    radius="0.03" 
+                    height="3" 
+                    color="#e74c3c"
+                    rotation="0 0 90">
+                </a-cylinder>
+                
+                <!-- Overhead luggage racks -->
+                <a-box 
+                    position="0 2.8 0" 
+                    width="8" 
+                    height="0.1" 
+                    depth="18" 
+                    color="#95a5a6"
+                    roughness="0.8">
+                </a-box>
+            </a-entity>
+        </a-entity>
+        
+        <!-- NPCs: Angry Passenger and Bus Driver -->
+        <a-entity id="npcs">
+            <!-- Angry Passenger -->
+            <a-entity id="angryPassenger" position="1 0 6">
+                <!-- Body -->
+                <a-cylinder 
+                    position="0 0.9 0" 
+                    radius="0.2" 
+                    height="1.8" 
+                    color="#e74c3c"
+                    roughness="0.6">
+                </a-cylinder>
+                
+                <!-- Head -->
+                <a-sphere 
+                    position="0 1.8 0" 
+                    radius="0.25" 
+                    color="#f39c12">
+                </a-sphere>
+                
+                <!-- Arms -->
+                <a-cylinder 
+                    position="-0.3 1.3 0" 
+                    radius="0.05" 
+                    height="0.6" 
+                    color="#e74c3c"
+                    rotation="0 0 45">
+                </a-cylinder>
+                
+                <a-cylinder 
+                    position="0.3 1.3 0" 
+                    radius="0.05" 
+                    height="0.6" 
+                    color="#e74c3c"
+                    rotation="0 0 -45">
+                </a-cylinder>
+                
+                <!-- Animation: Angry gestures -->
+                <a-animation 
+                    attribute="rotation" 
+                    dur="1000" 
+                    from="0 0 -5" 
+                    to="0 0 5" 
+                    direction="alternate" 
+                    repeat="indefinite"
+                    easing="easeInOutSine">
+                </a-animation>
+                
+                <!-- Speech bubble (initially hidden) -->
+                <a-entity id="passengerBubble" position="0 2.5 0" visible="false">
+                    <a-plane 
+                        width="1.5" 
+                        height="0.5" 
+                        color="#34495e" 
+                        opacity="0.9"
+                        position="0 0 0">
+                    </a-plane>
+                    <a-text 
+                        id="passengerText"
+                        value="" 
+                        width="1.3"
+                        align="center" 
+                        wrap-count="20"
+                        color="white" 
+                        position="0 0 0.01"
+                        font="https://cdn.aframe.io/fonts/mozillavr.fnt">
+                    </a-text>
+                </a-entity>
+            </a-entity>
+            
+            <!-- Bus Driver -->
+            <a-entity id="busDriver" position="-2 0 8">
+                <!-- Body -->
+                <a-cylinder 
+                    position="0 0.9 0" 
+                    radius="0.2" 
+                    height="1.8" 
+                    color="#3498db"
+                    roughness="0.6">
+                </a-cylinder>
+                
+                <!-- Head -->
+                <a-sphere 
+                    position="0 1.8 0" 
+                    radius="0.25" 
+                    color="#f39c12">
+                </a-sphere>
+                
+                <!-- Arms on steering wheel -->
+                <a-cylinder 
+                    position="0.15 1.4 0.2" 
+                    radius="0.05" 
+                    height="0.4" 
+                    color="#3498db"
+                    rotation="30 0 0">
+                </a-cylinder>
+                
+                <!-- Animation: Nervous head shaking -->
+                <a-animation 
+                    attribute="rotation" 
+                    dur="2000" 
+                    from="0 0 -2" 
+                    to="0 0 2" 
+                    direction="alternate" 
+                    repeat="indefinite"
+                    easing="easeInOutSine">
+                </a-animation>
+                
+                <!-- Steering wheel -->
+                <a-torus 
+                    position="0.3 1.5 0.3" 
+                    radius="0.2" 
+                    arc="360" 
+                    color="#7f8c8d"
+                    rotation="0 0 90">
+                </a-torus>
+                
+                <!-- Speech bubble (initially hidden) -->
+                <a-entity id="driverBubble" position="0 2.5 0" visible="false">
+                    <a-plane 
+                        width="1.5" 
+                        height="0.5" 
+                        color="#34495e" 
+                        opacity="0.9"
+                        position="0 0 0">
+                    </a-plane>
+                    <a-text 
+                        id="driverText"
+                        value="" 
+                        width="1.3"
+                        align="center" 
+                        wrap-count="20"
+                        color="white" 
+                        position="0 0 0.01"
+                        font="https://cdn.aframe.io/fonts/mozillavr.fnt">
+                    </a-text>
+                </a-entity>
+            </a-entity>
+        </a-entity>
         
         <!-- UI Panel -->
-        <a-entity id="uiPanel" position="0 1.2 -1.2">
-            <!-- Panel background -->
+        <a-entity id="uiPanel" position="0 1.5 -1.5">
+            <!-- Panel background with subtle animation -->
             <a-plane 
                 id="panelBg"
-                width="1.8" 
-                height="1.2" 
-                color="#333" 
-                opacity="0.9"
-                position="0 0 0">
+                width="2" 
+                height="1.5" 
+                color="#2c3e50" 
+                opacity="0.95"
+                position="0 0 0"
+                animation="property: position; from: 0 1.8 -1.5; to: 0 1.5 -1.5; dur: 1000; easing: easeOutBack">
+            </a-plane>
+            
+            <!-- Panel frame -->
+            <a-plane 
+                width="2.05" 
+                height="1.55" 
+                color="#3498db" 
+                opacity="0.8"
+                position="0 0 -0.01"
+                wireframe="true"
+                wireframe-linewidth="3">
             </a-plane>
             
             <!-- Subtitle text -->
             <a-text 
                 id="subtitle"
                 value="Welcome to Bystander Coach" 
-                width="1.6"
+                width="1.8"
                 align="center" 
-                wrap-count="30"
+                wrap-count="25"
                 color="white" 
-                position="0 0.4 0.01"
-                font="https://cdn.aframe.io/fonts/mozillavr.fnt">
+                position="0 0.5 0.01"
+                font="https://cdn.aframe.io/fonts/mozillavr.fnt"
+                animation="property: scale; from: 0.5 0.5 0.5; to: 1 1 1; dur: 800; delay: 300">
             </a-text>
             
-            <!-- Response buttons (initially hidden) -->
+            <!-- Response buttons -->
             <a-entity id="responseButtons" visible="false">
                 <!-- Button 1: Direct -->
                 <a-box 
                     class="clickable response-btn"
                     data-choice="Direct"
-                    width="1.2" 
-                    height="0.2" 
+                    width="1.4" 
+                    height="0.25" 
                     depth="0.05"
-                    color="#4CAF50"
+                    color="#27ae60"
                     position="0 0.1 0.01"
-                    event-set__mouseenter="scale: 1.1 1.1 1.1"
-                    event-set__mouseleave="scale: 1 1 1">
+                    event-set__mouseenter="scale: 1.05 1.05 1.05; color: #2ecc71"
+                    event-set__mouseleave="scale: 1 1 1; color: #27ae60"
+                    animation="property: position; from: 0 -0.5 0.01; to: 0 0.1 0.01; dur: 800; delay: 500">
                     <a-text 
-                        value="Direct" 
+                        value="Direct: Calmly address the situation" 
                         align="center" 
                         color="white" 
                         position="0 0 0.03"
-                        width="1.2">
+                        width="1.3">
                     </a-text>
                 </a-box>
                 
@@ -162,19 +506,20 @@
                 <a-box 
                     class="clickable response-btn"
                     data-choice="Distract"
-                    width="1.2" 
-                    height="0.2" 
+                    width="1.4" 
+                    height="0.25" 
                     depth="0.05"
-                    color="#2196F3"
-                    position="0 -0.1 0.01"
-                    event-set__mouseenter="scale: 1.1 1.1 1.1"
-                    event-set__mouseleave="scale: 1 1 1">
+                    color="#2980b9"
+                    position="0 -0.2 0.01"
+                    event-set__mouseenter="scale: 1.05 1.05 1.05; color: #3498db"
+                    event-set__mouseleave="scale: 1 1 1; color: #2980b9"
+                    animation="property: position; from: 0 -0.5 0.01; to: 0 -0.2 0.01; dur: 800; delay: 600">
                     <a-text 
-                        value="Distract" 
+                        value="Distract: Redirect attention" 
                         align="center" 
                         color="white" 
                         position="0 0 0.03"
-                        width="1.2">
+                        width="1.3">
                     </a-text>
                 </a-box>
                 
@@ -182,41 +527,43 @@
                 <a-box 
                     class="clickable response-btn"
                     data-choice="Delegate"
-                    width="1.2" 
-                    height="0.2" 
+                    width="1.4" 
+                    height="0.25" 
                     depth="0.05"
-                    color="#FF9800"
-                    position="0 -0.3 0.01"
-                    event-set__mouseenter="scale: 1.1 1.1 1.1"
-                    event-set__mouseleave="scale: 1 1 1">
+                    color="#e67e22"
+                    position="0 -0.5 0.01"
+                    event-set__mouseenter="scale: 1.05 1.05 1.05; color: #f39c12"
+                    event-set__mouseleave="scale: 1 1 1; color: #e67e22"
+                    animation="property: position; from: 0 -0.5 0.01; to: 0 -0.5 0.01; dur: 800; delay: 700">
                     <a-text 
-                        value="Delegate" 
+                        value="Delegate: Seek help from authority" 
                         align="center" 
                         color="white" 
                         position="0 0 0.03"
-                        width="1.2">
+                        width="1.3">
                     </a-text>
                 </a-box>
             </a-entity>
             
-            <!-- Voice input button (initially hidden) -->
+            <!-- Voice input section -->
             <a-entity id="voiceInputSection" visible="false">
                 <a-box 
                     id="speakNowBtn"
                     class="clickable"
-                    width="1.2" 
-                    height="0.2" 
+                    width="1.4" 
+                    height="0.25" 
                     depth="0.05"
-                    color="#9C27B0"
-                    position="0 -0.5 0.01"
-                    event-set__mouseenter="scale: 1.1 1.1 1.1"
-                    event-set__mouseleave="scale: 1 1 1">
+                    color="#9b59b6"
+                    position="0 -0.8 0.01"
+                    event-set__mouseenter="scale: 1.05 1.05 1.05; color: #8e44ad"
+                    event-set__mouseleave="scale: 1 1 1; color: #9b59b6"
+                    animation="property: position; from: 0 -1.2 0.01; to: 0 -0.8 0.01; dur: 800; delay: 800">
                     <a-text 
-                        value="Speak Now" 
+                        value="Speak Your Response (Click and hold)" 
                         align="center" 
                         color="white" 
                         position="0 0 0.03"
-                        width="1.2">
+                        width="1.3">
                     </a-text>
                 </a-box>
                 
@@ -224,34 +571,46 @@
                 <a-text 
                     id="transcript"
                     value="" 
-                    width="1.6"
+                    width="1.8"
                     align="center" 
-                    wrap-count="30"
-                    color="#FFEB3B" 
-                    position="0 -0.7 0.01"
+                    wrap-count="25"
+                    color="#f1c40f" 
+                    position="0 -1.1 0.01"
                     font="https://cdn.aframe.io/fonts/mozillavr.fnt">
                 </a-text>
             </a-entity>
         </a-entity>
         
-        <!-- Feedback Card (initially hidden) -->
-        <a-entity id="feedbackCard" position="0 1.2 -0.8" scale="0 0 0" visible="false">
-            <!-- Card background -->
+        <!-- Feedback Card -->
+        <a-entity id="feedbackCard" position="0 1.5 -0.8" scale="0 0 0" visible="false">
+            <!-- Card background with animation -->
             <a-plane 
-                width="1.8" 
-                height="1.8" 
-                color="#222" 
-                opacity="0.95"
-                position="0 0 0">
+                width="2" 
+                height="2" 
+                color="#2c3e50" 
+                opacity="0.97"
+                position="0 0 0"
+                animation="property: scale; from: 0 0 0; to: 1 1 1; dur: 1000; easing: easeOutBack">
+            </a-plane>
+            
+            <!-- Card frame -->
+            <a-plane 
+                width="2.05" 
+                height="2.05" 
+                color="#3498db" 
+                opacity="0.8"
+                position="0 0 -0.01"
+                wireframe="true"
+                wireframe-linewidth="3">
             </a-plane>
             
             <!-- Card title -->
             <a-text 
-                value="Feedback Card" 
-                width="1.6"
+                value="Training Feedback" 
+                width="1.8"
                 align="center" 
-                color="white" 
-                position="0 0.7 0.01"
+                color="#f1c40f" 
+                position="0 0.8 0.01"
                 font="https://cdn.aframe.io/fonts/mozillavr.fnt">
             </a-text>
             
@@ -259,11 +618,11 @@
             <a-text 
                 id="feedbackResponse"
                 value="" 
-                width="1.6"
+                width="1.8"
                 align="center" 
-                wrap-count="30"
-                color="#FF9800" 
-                position="0 0.4 0.01"
+                wrap-count="25"
+                color="#e74c3c" 
+                position="0 0.5 0.01"
                 font="https://cdn.aframe.io/fonts/mozillavr.fnt">
             </a-text>
             
@@ -271,11 +630,11 @@
             <a-text 
                 id="feedbackTone"
                 value="" 
-                width="1.6"
+                width="1.8"
                 align="center" 
-                wrap-count="30"
-                color="#4CAF50" 
-                position="0 0.2 0.01"
+                wrap-count="25"
+                color="#3498db" 
+                position="0 0.3 0.01"
                 font="https://cdn.aframe.io/fonts/mozillavr.fnt">
             </a-text>
             
@@ -283,11 +642,11 @@
             <a-text 
                 id="feedbackPositive"
                 value="" 
-                width="1.6"
+                width="1.8"
                 align="center" 
-                wrap-count="30"
-                color="#4CAF50" 
-                position="0 0 0.01"
+                wrap-count="25"
+                color="#27ae60" 
+                position="0 0.1 0.01"
                 font="https://cdn.aframe.io/fonts/mozillavr.fnt">
             </a-text>
             
@@ -295,11 +654,11 @@
             <a-text 
                 id="feedbackSuggestion"
                 value="" 
-                width="1.6"
+                width="1.8"
                 align="center" 
-                wrap-count="30"
-                color="#FF5722" 
-                position="0 -0.2 0.01"
+                wrap-count="25"
+                color="#e67e22" 
+                position="0 -0.1 0.01"
                 font="https://cdn.aframe.io/fonts/mozillavr.fnt">
             </a-text>
             
@@ -307,11 +666,11 @@
             <a-text 
                 id="feedbackBetterLine"
                 value="" 
-                width="1.6"
+                width="1.8"
                 align="center" 
-                wrap-count="30"
-                color="#2196F3" 
-                position="0 -0.4 0.01"
+                wrap-count="25"
+                color="#9b59b6" 
+                position="0 -0.3 0.01"
                 font="https://cdn.aframe.io/fonts/mozillavr.fnt">
             </a-text>
             
@@ -319,13 +678,13 @@
             <a-box 
                 id="saveCardBtn"
                 class="clickable"
-                width="0.8" 
-                height="0.15" 
+                width="0.9" 
+                height="0.2" 
                 depth="0.05"
-                color="#4CAF50"
-                position="-0.4 -0.7 0.01"
-                event-set__mouseenter="scale: 1.1 1.1 1.1"
-                event-set__mouseleave="scale: 1 1 1">
+                color="#27ae60"
+                position="-0.5 -0.7 0.01"
+                event-set__mouseenter="scale: 1.05 1.05 1.05; color: #2ecc71"
+                event-set__mouseleave="scale: 1 1 1; color: #27ae60">
                 <a-text 
                     value="Save Card" 
                     align="center" 
@@ -339,13 +698,13 @@
             <a-box 
                 id="replayBtn"
                 class="clickable"
-                width="0.8" 
-                height="0.15" 
+                width="0.9" 
+                height="0.2" 
                 depth="0.05"
-                color="#2196F3"
-                position="0.4 -0.7 0.01"
-                event-set__mouseenter="scale: 1.1 1.1 1.1"
-                event-set__mouseleave="scale: 1 1 1">
+                color="#3498db"
+                position="0.5 -0.7 0.01"
+                event-set__mouseenter="scale: 1.05 1.05 1.05; color: #2980b9"
+                event-set__mouseleave="scale: 1 1 1; color: #3498db">
                 <a-text 
                     value="Replay" 
                     align="center" 
@@ -355,60 +714,52 @@
                 </a-text>
             </a-box>
         </a-entity>
-        
-        <!-- Demo object (spinning cube) -->
-        <a-box 
-            position="-2 1 -3" 
-            rotation="0 45 0" 
-            color="#4CC3D9"
-            animation="property: rotation; to: 0 405 0; loop: true; dur: 5000">
-        </a-box>
     </a-scene>
 
     <script>
-        // SCENARIO DATA - Two-turn scenario for bus conflict
+        // Enhanced scenario with more realistic dialogue
         const SCENARIO_BUS_V1 = {
             turn1: {
-                npc_line: "A passenger is yelling at the bus driver over a fare dispute. What do you do?",
-                good_keywords: ["calm", "help", "support", "understand", "okay", "please"],
-                bad_keywords: ["shut up", "idiot", "stupid", "angry", "hate", "fight"],
+                npc_line: "Hey! I paid my fare! This machine is broken and you're trying to cheat me!",
+                good_keywords: ["calm", "help", "understand", "issue", "problem", "assist", "check"],
+                bad_keywords: ["shut up", "idiot", "stupid", "liar", "cheat", "sue", "fight"],
                 branches: {
                     STRONG: {
-                        npc_react: "The passenger calms down slightly and explains their frustration more calmly.",
+                        npc_react: "The passenger takes a breath and explains more calmly: 'Okay, look, I swiped my card three times already.'",
                         outcome: "cooling"
                     },
                     NEUTRAL: {
-                        npc_react: "The passenger ignores you and continues arguing with the driver.",
+                        npc_react: "The passenger scowls but lowers their voice slightly: 'Whatever, just drive the bus.'",
                         outcome: "stall"
                     },
                     ESCALATE: {
-                        npc_react: "The passenger turns their anger toward you, becoming more aggressive.",
+                        npc_react: "The passenger turns toward you aggressively: 'Who asked you? Mind your own business!'",
                         outcome: "escalate"
                     }
                 }
             },
             turn2: {
-                npc_line: "The passenger is now directing their frustration at you. How do you respond?",
-                good_keywords: ["space", "breathe", "cool", "safe", "respect", "listen"],
-                bad_keywords: ["back off", "threaten", "yell", "attack", "police", "fight"],
+                npc_line: "Why are you getting involved? This is between me and the driver!",
+                good_keywords: ["peace", "safe", "respect", "everyone", "understand", "help", "resolve"],
+                bad_keywords: ["back off", "threaten", "yell", "police", "fight", "stupid", "shut up"],
                 branches: {
                     STRONG: {
-                        npc_react: "The passenger takes a step back and apologizes for their behavior.",
+                        npc_react: "The passenger sighs and sits down: 'Fine, fine. I'll just take a seat. This isn't worth it.'",
                         outcome: "cooling"
                     },
                     NEUTRAL: {
-                        npc_react: "The passenger continues complaining but with less intensity.",
+                        npc_react: "The passenger mutters under their breath but stops confronting the driver directly.",
                         outcome: "stall"
                     },
                     ESCALATE: {
-                        npc_react: "The situation escalates and other passengers get involved.",
+                        npc_react: "The passenger gets in your face: 'You want trouble? I'll give you trouble!'",
                         outcome: "escalate"
                     }
                 }
             }
         };
 
-        // App state
+        // App state with enhanced tracking
         let appState = {
             currentTurn: 1,
             micEnabled: false,
@@ -420,12 +771,18 @@
             gameData: {
                 turn1: { response: "", tone: "", branch: "" },
                 turn2: { response: "", tone: "", branch: "" }
+            },
+            npcAnimations: {
+                angry: { rotation: { from: "0 0 -10", to: "0 0 10", dur: 500 } },
+                calm: { rotation: { from: "0 0 -2", to: "0 0 2", dur: 2000 } }
             }
         };
 
         // DOM elements
+        const loadingScreen = document.getElementById('loadingScreen');
         const micPermissionBtn = document.getElementById('micPermission');
         const micStatus = document.getElementById('micStatus');
+        const hint = document.getElementById('hint');
         const subtitle = document.getElementById('subtitle');
         const responseButtons = document.getElementById('responseButtons');
         const voiceInputSection = document.getElementById('voiceInputSection');
@@ -441,25 +798,32 @@
         const replayBtn = document.getElementById('replayBtn');
         const exportCanvas = document.getElementById('exportCanvas');
         const ctx = exportCanvas.getContext('2d');
+        const angryPassenger = document.getElementById('angryPassenger');
+        const busDriver = document.getElementById('busDriver');
+        const passengerBubble = document.getElementById('passengerBubble');
+        const driverBubble = document.getElementById('driverBubble');
+        const passengerText = document.getElementById('passengerText');
+        const driverText = document.getElementById('driverText');
 
-        // Initialize the app
+        // Initialize the app when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
+            // Hide loading screen after a short delay to ensure everything is loaded
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+                // Start the scenario
+                startTurn(1);
+            }, 1500);
+            
+            // Set up event listeners
+            micPermissionBtn.addEventListener('click', requestMicrophonePermission);
+            setupVREventListeners();
+            
             // Set up hover indicators for controllers
             setupHoverIndicators();
-            
-            // Start with the first turn
-            startTurn(1);
-            
-            // Set up event listeners for 2D UI
-            micPermissionBtn.addEventListener('click', requestMicrophonePermission);
-            
-            // Set up event listeners for VR elements
-            setupVREventListeners();
         });
 
         // Set up hover indicators for controllers
         function setupHoverIndicators() {
-            // Listen for controller intersections to show hover indicators
             const controllers = document.querySelectorAll('[laser-controls]');
             controllers.forEach(controller => {
                 controller.addEventListener('raycaster-intersection', function(event) {
@@ -509,33 +873,73 @@
             });
         }
 
-        // Start a new turn
+        // Start a new turn with enhanced NPC interactions
         function startTurn(turnNumber) {
             appState.currentTurn = turnNumber;
             const turnData = turnNumber === 1 ? SCENARIO_BUS_V1.turn1 : SCENARIO_BUS_V1.turn2;
             
-            // Update subtitle with NPC line
+            // Update UI
             subtitle.setAttribute('value', turnData.npc_line);
-            
-            // Show response options
             responseButtons.setAttribute('visible', true);
-            
-            // Show voice input if mic is enabled
             voiceInputSection.setAttribute('visible', appState.micEnabled);
-            
-            // Reset transcript
             transcript.setAttribute('value', '');
             
-            // Hide feedback card if it's visible
+            // Hide feedback card if visible
             feedbackCard.setAttribute('visible', false);
             feedbackCard.setAttribute('scale', '0 0 0');
+            
+            // Enhanced NPC interactions
+            if (turnNumber === 1) {
+                // Show angry passenger animation
+                angryPassenger.setAttribute('animation', {
+                    property: 'rotation',
+                    dur: '500',
+                    from: '0 0 -10',
+                    to: '0 0 10',
+                    direction: 'alternate',
+                    repeat: 'indefinite'
+                });
+                
+                // Show passenger speech bubble
+                passengerBubble.setAttribute('visible', true);
+                passengerText.setAttribute('value', turnData.npc_line);
+                
+                // Driver looks nervous
+                busDriver.setAttribute('animation', {
+                    property: 'rotation',
+                    dur: '1000',
+                    from: '0 0 -5',
+                    to: '0 0 5',
+                    direction: 'alternate',
+                    repeat: 'indefinite'
+                });
+            } else {
+                // Turn 2: Passenger is now addressing the player
+                angryPassenger.setAttribute('animation', {
+                    property: 'rotation',
+                    dur: '400',
+                    from: '0 0 -15',
+                    to: '0 0 15',
+                    direction: 'alternate',
+                    repeat: 'indefinite'
+                });
+                
+                passengerBubble.setAttribute('visible', true);
+                passengerText.setAttribute('value', turnData.npc_line);
+            }
         }
 
         // Handle button response
         function handleButtonResponse(choice) {
-            // For button responses, use ASSERTIVE tone by default
-            const tone = 'ASSERTIVE';
-            const responseText = choice;
+            // Map choice to sample response text
+            const responseMap = {
+                'Direct': "Can we please discuss this calmly? I'm sure there's a solution.",
+                'Distract': "Excuse me, does anyone know what stop we're at? I think I'm lost.",
+                'Delegate': "Driver, is there a transit authority number we can call to resolve this?"
+            };
+            
+            const responseText = responseMap[choice] || choice;
+            const tone = 'ASSERTIVE'; // Button responses are always assertive
             
             // Evaluate the response
             evaluateResponse(responseText, tone, choice);
@@ -548,25 +952,20 @@
                     .then(function(stream) {
                         appState.micEnabled = true;
                         appState.mediaStream = stream;
-                        micStatus.textContent = 'Mic: Enabled';
-                        micPermissionBtn.textContent = 'Mic Enabled';
-                        micPermissionBtn.style.background = 'rgba(0, 200, 0, 0.8)';
+                        micStatus.textContent = 'Microphone: Enabled';
+                        micPermissionBtn.textContent = 'Microphone Enabled';
+                        micPermissionBtn.style.background = 'rgba(0, 200, 0, 0.9)';
                         
-                        // Initialize audio context for tone analysis
                         initAudioContext(stream);
-                        
-                        // Initialize speech recognition if available
                         initSpeechRecognition();
-                        
-                        // Show voice input section
                         voiceInputSection.setAttribute('visible', true);
                     })
                     .catch(function(err) {
                         console.error('Error accessing microphone:', err);
-                        micStatus.textContent = 'Mic: Access Denied';
+                        micStatus.textContent = 'Microphone: Access Denied';
                     });
             } else {
-                micStatus.textContent = 'Mic: Not Supported';
+                micStatus.textContent = 'Microphone: Not Supported';
             }
         }
 
@@ -591,21 +990,18 @@
                 appState.recognition.onresult = function(event) {
                     const transcriptText = event.results[0][0].transcript;
                     transcript.setAttribute('value', `You said: ${transcriptText}`);
-                    
-                    // Analyze tone from the recorded audio
                     analyzeTone(transcriptText);
                 };
                 
                 appState.recognition.onerror = function(event) {
                     console.error('Speech recognition error:', event.error);
                     transcript.setAttribute('value', 'Error: Could not understand speech');
-                    // Fall back to button input
                     responseButtons.setAttribute('visible', true);
                 };
                 
                 appState.recognition.onend = function() {
                     appState.isListening = false;
-                    speakNowBtn.setAttribute('color', '#9C27B0');
+                    speakNowBtn.setAttribute('color', '#9b59b6');
                 };
             } else {
                 transcript.setAttribute('value', 'Speech recognition not supported');
@@ -617,13 +1013,12 @@
             if (appState.isListening) return;
             
             appState.isListening = true;
-            speakNowBtn.setAttribute('color', '#FF0000');
-            transcript.setAttribute('value', 'Listening...');
+            speakNowBtn.setAttribute('color', '#e74c3c');
+            transcript.setAttribute('value', 'Listening... Speak now.');
             
             // Hide buttons during voice input
             responseButtons.setAttribute('visible', false);
             
-            // Start speech recognition if available
             if (appState.recognition) {
                 appState.recognition.start();
             } else {
@@ -644,29 +1039,23 @@
         // Analyze tone from audio
         function analyzeTone(transcriptText) {
             if (!appState.analyser) {
-                // If no analyser, use default tone
                 evaluateResponse(transcriptText, 'ASSERTIVE', 'Voice');
                 return;
             }
             
-            // Capture audio data for 1 second
             const bufferLength = appState.analyser.frequencyBinCount;
             const dataArray = new Uint8Array(bufferLength);
             
-            // Collect data for 1 second (simplified - in reality would need to sample over time)
             setTimeout(function() {
                 appState.analyser.getByteTimeDomainData(dataArray);
                 
-                // Calculate RMS (root mean square) for volume
                 let sum = 0;
                 for (let i = 0; i < bufferLength; i++) {
-                    // Convert to -1 to 1 range
                     const sample = (dataArray[i] - 128) / 128;
                     sum += sample * sample;
                 }
                 const rms = Math.sqrt(sum / bufferLength);
                 
-                // Calculate zero-crossing rate as a proxy for pace
                 let zeroCrossings = 0;
                 for (let i = 1; i < bufferLength; i++) {
                     if ((dataArray[i-1] < 128 && dataArray[i] >= 128) || 
@@ -676,7 +1065,6 @@
                 }
                 const zeroCrossingRate = zeroCrossings / bufferLength;
                 
-                // Determine tone bucket
                 let tone;
                 if (rms < 0.25) {
                     tone = 'CALM';
@@ -686,17 +1074,15 @@
                     tone = 'AGGRESSIVE';
                 }
                 
-                // If high zero-crossing rate, consider it aggressive (fast speech)
                 if (zeroCrossingRate > 0.3) {
                     tone = 'AGGRESSIVE';
                 }
                 
-                // Evaluate the response with the detected tone
                 evaluateResponse(transcriptText, tone, 'Voice');
             }, 1000);
         }
 
-        // Evaluate the player's response
+        // Evaluate the player's response with enhanced NPC reactions
         function evaluateResponse(responseText, tone, inputMethod) {
             const turnData = appState.currentTurn === 1 ? SCENARIO_BUS_V1.turn1 : SCENARIO_BUS_V1.turn2;
             
@@ -709,7 +1095,6 @@
             let containsGoodKeyword = false;
             let containsBadKeyword = false;
             
-            // Check for good keywords
             for (const keyword of turnData.good_keywords) {
                 if (lowerResponse.includes(keyword.toLowerCase())) {
                     containsGoodKeyword = true;
@@ -717,7 +1102,6 @@
                 }
             }
             
-            // Check for bad keywords
             for (const keyword of turnData.bad_keywords) {
                 if (lowerResponse.includes(keyword.toLowerCase())) {
                     containsBadKeyword = true;
@@ -738,9 +1122,42 @@
             // Store branch result
             appState.gameData[`turn${appState.currentTurn}`].branch = branch;
             
-            // Show NPC reaction
+            // Show NPC reaction with enhanced animations
             const npcReaction = turnData.branches[branch].npc_react;
             subtitle.setAttribute('value', npcReaction);
+            
+            // Update NPC animations based on outcome
+            if (branch === 'STRONG') {
+                // Calmer animation
+                angryPassenger.setAttribute('animation', {
+                    property: 'rotation',
+                    dur: '2000',
+                    from: '0 0 -5',
+                    to: '0 0 5',
+                    direction: 'alternate',
+                    repeat: 'indefinite'
+                });
+            } else if (branch === 'ESCALATE') {
+                // More aggressive animation
+                angryPassenger.setAttribute('animation', {
+                    property: 'rotation',
+                    dur: '300',
+                    from: '0 0 -20',
+                    to: '0 0 20',
+                    direction: 'alternate',
+                    repeat: 'indefinite'
+                });
+                
+                // Move passenger slightly toward player for escalation
+                angryPassenger.setAttribute('animation__2', {
+                    property: 'position',
+                    dur: '1000',
+                    from: '1 0 6',
+                    to: '0.5 0 5.5',
+                    direction: 'alternate',
+                    repeat: 'indefinite'
+                });
+            }
             
             // Hide response options
             responseButtons.setAttribute('visible', false);
@@ -756,13 +1173,12 @@
                 } else {
                     showFeedbackCard();
                 }
-            }, 3000);
+            }, 4000);
         }
 
         // Play a sound based on the branch outcome
         function playToneSound(branch) {
             if (!appState.audioContext) {
-                // Create a temporary audio context if needed
                 appState.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             }
             
@@ -772,13 +1188,12 @@
             oscillator.connect(gainNode);
             gainNode.connect(appState.audioContext.destination);
             
-            // Different tones for different outcomes
             if (branch === 'STRONG') {
-                oscillator.frequency.setValueAtTime(523.25, appState.audioContext.currentTime); // C5 - positive
+                oscillator.frequency.setValueAtTime(523.25, appState.audioContext.currentTime);
             } else if (branch === 'NEUTRAL') {
-                oscillator.frequency.setValueAtTime(392.00, appState.audioContext.currentTime); // G4 - neutral
+                oscillator.frequency.setValueAtTime(392.00, appState.audioContext.currentTime);
             } else {
-                oscillator.frequency.setValueAtTime(311.13, appState.audioContext.currentTime); // D#4 - negative
+                oscillator.frequency.setValueAtTime(311.13, appState.audioContext.currentTime);
             }
             
             gainNode.gain.setValueAtTime(0.1, appState.audioContext.currentTime);
@@ -790,6 +1205,10 @@
 
         // Show feedback card at the end of the scenario
         function showFeedbackCard() {
+            // Hide NPC speech bubbles
+            passengerBubble.setAttribute('visible', false);
+            driverBubble.setAttribute('visible', false);
+            
             // Determine overall outcome
             const turn1Outcome = SCENARIO_BUS_V1.turn1.branches[appState.gameData.turn1.branch].outcome;
             const turn2Outcome = SCENARIO_BUS_V1.turn2.branches[appState.gameData.turn2.branch].outcome;
@@ -797,65 +1216,76 @@
             
             // Set feedback content based on outcome
             if (isSuccess) {
-                feedbackResponse.setAttribute('value', `Your response: "${appState.gameData.turn2.response}"`);
+                feedbackResponse.setAttribute('value', `Response: "${appState.gameData.turn2.response}"`);
                 feedbackTone.setAttribute('value', `Tone: ${appState.gameData.turn2.tone}`);
-                feedbackPositive.setAttribute('value', '✓ You helped de-escalate the situation');
-                feedbackSuggestion.setAttribute('value', 'Keep using calm, clear communication');
-                feedbackBetterLine.setAttribute('value', 'Try: "Let\'s all take a breath and talk this through"');
+                feedbackPositive.setAttribute('value', '✓ You successfully de-escalated the situation');
+                feedbackSuggestion.setAttribute('value', 'Continue using calm, clear communication in conflicts');
+                feedbackBetterLine.setAttribute('value', 'Example: "Let\'s all take a breath and talk this through calmly"');
             } else {
-                feedbackResponse.setAttribute('value', `Your response: "${appState.gameData.turn2.response}"`);
+                feedbackResponse.setAttribute('value', `Response: "${appState.gameData.turn2.response}"`);
                 feedbackTone.setAttribute('value', `Tone: ${appState.gameData.turn2.tone}`);
                 feedbackPositive.setAttribute('value', '✓ You attempted to intervene safely');
-                feedbackSuggestion.setAttribute('value', 'Avoid aggressive language; stay calm under pressure');
-                feedbackBetterLine.setAttribute('value', 'Try: "I understand you\'re upset, but let\'s stay calm"');
+                feedbackSuggestion.setAttribute('value', 'Work on maintaining calm under pressure; avoid aggressive language');
+                feedbackBetterLine.setAttribute('value', 'Try: "I understand frustration, but let\'s find a peaceful solution"');
             }
             
             // Show and animate the feedback card
             feedbackCard.setAttribute('visible', true);
             feedbackCard.setAttribute('scale', '1 1 1');
+            
+            // Reset NPC positions and animations
+            angryPassenger.setAttribute('position', '1 0 6');
+            angryPassenger.setAttribute('animation', {
+                property: 'rotation',
+                dur: '2000',
+                from: '0 0 -5',
+                to: '0 0 5',
+                direction: 'alternate',
+                repeat: 'indefinite'
+            });
         }
 
         // Export feedback card as PNG
         function exportFeedbackCard() {
             // Clear canvas
-            ctx.fillStyle = '#222222';
+            ctx.fillStyle = '#2c3e50';
             ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
             
             // Add title
-            ctx.fillStyle = '#FFFFFF';
+            ctx.fillStyle = '#f1c40f';
             ctx.font = 'bold 36px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText('Bystander Coach - Feedback Card', exportCanvas.width / 2, 50);
+            ctx.fillText('Bystander Coach - Training Feedback', exportCanvas.width / 2, 50);
             
             // Add response
-            ctx.fillStyle = '#FF9800';
+            ctx.fillStyle = '#e74c3c';
             ctx.font = '20px Arial';
             wrapText(ctx, feedbackResponse.getAttribute('value'), exportCanvas.width / 2, 120, 700, 24);
             
             // Add tone
-            ctx.fillStyle = '#4CAF50';
+            ctx.fillStyle = '#3498db';
             ctx.font = '20px Arial';
             ctx.fillText(feedbackTone.getAttribute('value'), exportCanvas.width / 2, 180);
             
             // Add positive feedback
-            ctx.fillStyle = '#4CAF50';
+            ctx.fillStyle = '#27ae60';
             ctx.font = '20px Arial';
             wrapText(ctx, feedbackPositive.getAttribute('value'), exportCanvas.width / 2, 240, 700, 24);
             
             // Add suggestion
-            ctx.fillStyle = '#FF5722';
+            ctx.fillStyle = '#e67e22';
             ctx.font = '20px Arial';
             wrapText(ctx, feedbackSuggestion.getAttribute('value'), exportCanvas.width / 2, 300, 700, 24);
             
             // Add better line
-            ctx.fillStyle = '#2196F3';
+            ctx.fillStyle = '#9b59b6';
             ctx.font = '20px Arial';
             wrapText(ctx, feedbackBetterLine.getAttribute('value'), exportCanvas.width / 2, 360, 700, 24);
             
             // Add watermark
             ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
             ctx.font = '14px Arial';
-            ctx.fillText('Bystander Coach VR Training', exportCanvas.width / 2, exportCanvas.height - 30);
+            ctx.fillText('Bystander Coach VR Training - Bus Conflict Scenario', exportCanvas.width / 2, exportCanvas.height - 30);
             
             // Create download link
             const link = document.createElement('a');
