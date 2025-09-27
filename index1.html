@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Bystander Coach — VR De-Escalation Trainer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <!-- A-Frame (WebXR/Three.js included) -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; background: #0b0f17; }
+    .hint {
+      position: fixed; left: 12px; bottom: 12px; z-index: 9;
+      font: 13px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color: #cbd5e1; background: rgba(11,15,23,.7);
+      padding: 8px 10px; border-radius: 8px; border: 1px solid #1f2937;
+    }
+    .topright {
+      position: fixed; right: 12px; top: 12px; z-index: 9;
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+    .btn2d {
+      font: 13px/1 system-ui; color: #e5e7eb; background: #111827;
+      border: 1px solid #374151; border-radius: 8px; padding: 8px 10px;
+      cursor: pointer;
+    }
+    .btn2d:active { transform: translateY(1px); }
+  </style>
+</head>
+<body>
+  <!-- 2D helpers (always visible) -->
+  <div class="hint">
+    <b>How to use:</b> Quest — point with controller ray & pull trigger. Desktop — drag to look, WASD to move.<br>
+    Click <b>Enable Mic</b> to try voice; else use the 3 options on the panel.
+  </div>
+  <div class="topright">
+    <button id="micBtn" class="btn2d">Enable Mic</button>
+    <button id="speakBtn" class="btn2d" disabled>Speak Now (1s)</button>
+  </div>
+
+  <!-- Scene -->
+  <a-scene
+    renderer="antialias: true; colorManagement: true;"
+    background="color: #0b0f17"
+    webxr="optionalFeatures: local-floor;"
+    vr-mode-ui="enabled: true"
+    device-orientation-permission-ui="enabled: true"
+  >
+    <!-- Camera rig + gaze cursor + controller rays -->
+    <a-entity id="rig" position="0 1.6 2.2">
+      <a-entity camera look-controls wasd-controls="acceleration: 10">
+        <!-- Gaze cursor (desktop/mobile fallback) -->
+        <a-entity cursor="fuse: false" position="0 0 -1"
+                  geometry="primitive: ring; radiusInner: 0.01; radiusOuter: 0.015"
+                  material="color: #e2e8f0; shader: flat; opacity: 0.85"></a-entity>
+      </a-entity>
+
+      <a-entity id="rightHand" laser-controls="hand: right"
+                raycaster="objects: .clickable; far: 8;"></a-entity>
+      <a-entity id="leftHand" laser-controls="hand: left"
+                raycaster="objects: .clickable; far: 8;"></a-entity>
+    </a-entity>
+
+    <!-- Lighting -->
+    <a-entity light="type: hemisphere; color: #ffffff; groundColor: #223; intensity: 1.0"></a-entity>
+
+    <!-- Ground plane -->
+    <a-entity geometry="primitive: plane; width: 30; height: 30"
+              rotation="-90 0 0" material="color: #121826; roughness: 1"></a-entity>
+
+    <!-- Minimal "bus" environment (benches + poles) -->
+    <a-box position="-0.9 0.45 -1.2" depth="0.4" height="0.4" width="1.4" color="#263244"></a-box>
+    <a-box position=" 0.9 0.45 -1.2" depth="0.4" height="0.4" width="1.4" color="#263244"></a-box>
+    <a-cylinder position="-0.45 1.4 -1.2" radius="0.03" height="1.2" color="#2a364c"></a-cylinder>
+    <a-cylinder position=" 0.45 1.4 -1.2" radius="0.03" height="1.2" color="#2a364c"></a-cylinder>
+
+    <!-- NPC Aggressor avatar (simple) -->
+    <a-entity id="npc" position="0 1.6 -1.5">
+      <a-sphere radius="0.15" color="#fca5a5" position="0 0.18 0"></a-sphere> <!-- head -->
+      <a-cylinder radius="0.18" height="0.42" color="#334155" position="0 -0.15 0"></a-cylinder> <!-- torso -->
+      <a-entity id="npcMouth" geometry="primitive: box; width: 0.1; height: 0.02; depth: 0.02"
+                material="color: #ef4444" position="0 0.10 0.14"></a-entity>
+    </a-entity>
+
+    <!-- Hover dot shows ray hits on clickables -->
+    <a-entity id="hoverDot" geometry="primitive: sphere; radius: 0.01"
+              material="color: #93c5fd" visible="false"></a-entity>
+
+    <!-- Subtitle + Prompt Panel -->
+    <a-entity id="panel"
+              geometry="primitive: plane; width: 1.25; height: 0.72"
+              position="0 1.15 -1.05"
+              material="color: #071426; opacity: 0.92; side: double">
+      <!-- Subtitle text (NPC lines, tips) -->
+      <a-entity id="subtitle" position="-0.58 0.24 0"
+                text="value: ; color: #e7edf7; width: 1.15; wrapCount: 34; align: left"></a-entity>
+
+      <!-- Player transcript / choice echo -->
+      <a-entity id="youSaid" position="-0.58 0.10 0"
+                text="value: ; color: #9fb6d1; width: 1.15; wrapCount: 34; align: left"></a-entity>
+
+      <!-- Option buttons (Direct / Distract / Delegate) -->
+      <a-entity id="optDirect" class="clickable"
+                geometry="primitive: plane; width: 1.15; height: 0.12"
+                position="0 -0.02 0" material="color: #0d203a">
+        <a-entity position="-0.54 0 0"
+          text="value: Direct: 'That’s not okay. Please stop.'; color: #e5efff; width: 1.05; wrapCount: 36; align: left"></a-entity>
+      </a-entity>
+
+      <a-entity id="optDistract" class="clickable"
+                geometry="primitive: plane; width: 1.15; height: 0.12"
+                position="0 -0.18 0" material="color: #0c1b31">
+        <a-entity position="-0.54 0 0"
+          text="value: Distract: 'Hey, is this seat free?'; color: #dbeafe; width: 1.05; wrapCount: 36; align: left"></a-entity>
+      </a-entity>
+
+      <a-entity id="optDelegate" class="clickable"
+                geometry="primitive: plane; width: 1.15; height: 0.12"
+                position="0 -0.34 0" material="color: #0a1627">
+        <a-entity position="-0.54 0 0"
+          text="value: Delegate: 'Driver, can you help here?'; color: #c7d2fe; width: 1.05; wrapCount: 36; align: left"></a-entity>
+      </a-entity>
+    </a-entity>
+
+    <!-- Feedback Card Overlay (hidden until end) -->
+    <a-entity id="card" visible="false"
+              geometry="primitive: plane; width: 1.25; height: 0.72"
+              position="0 1.15 -1.05"
+              material="color: #00152b; opacity: 0.98; side: double">
+      <a-entity id="cardTitle" position="-0.58 0.28 0"
+                text="value: ; color: #a7f3d0; width: 1.15; wrapCount: 34; align: left"></a-entity>
+      <a-entity id="cardBody"  position="-0.58 0.10 0"
+                text="value: ; color: #e7edf7; width: 1.15; wrapCount: 34; align: left"></a-entity>
+      <!-- Save PNG + Replay buttons -->
+      <a-entity id="btnSave" class="clickable"
+                geometry="primitive: plane; width: 0.5; height: 0.12"
+                position="-0.28 -0.28 0" material="color: #0f2d4a">
+        <a-entity text="value: Save Card (PNG); color: #e0f2fe; width: 0.48; align: center"></a-entity>
+      </a-entity>
+      <a-entity id="btnReplay" class="clickable"
+                geometry="primitive: plane; width: 0.5; height: 0.12"
+                position="0.28 -0.28 0" material="color: #0b2b33">
+        <a-entity text="value: Replay; color: #d1fae5; width: 0.48; align: center"></a-entity>
+      </a-entity>
+    </a-entity>
+
+    <!-- Inline logic -->
+    <script>
+      // -----------------------------
+      // Scenario data (2 turns)
+      // -----------------------------
+      const SCENARIO_BUS_V1 = {
+        id: 'bus_v1',
+        turns: [
+          {
+            npc_line: "Hey. Why are you sitting there? Move. Now.",
+            good_keywords: ["that's not okay", "please stop", "leave them alone", "not okay", "stop"],
+            bad_keywords:  ["shut up", "idiot", "moron", "stupid"],
+            branches: {
+              STRONG:   { npc_react: "…Whatever. I’m just saying.", outcome: "cooling" },
+              NEUTRAL:  { npc_react: "Huh? Mind your business.",     outcome: "stall"   },
+              ESCALATE: { npc_react: "Oh really? You wanna go?",      outcome: "escalate"}
+            }
+          },
+          {
+            npc_line: "Tch. Why do you care?",
+            good_keywords: ["everyone deserves respect", "we're just riding", "let them be", "let them alone","respect"],
+            bad_keywords:  ["loser","get lost","shut up","freak"],
+            branches: {
+              STRONG:   { npc_react: "Fine.",     outcome: "cooling" },
+              NEUTRAL:  { npc_react: "Whatever.", outcome: "stall"   },
+              ESCALATE: { npc_react: "Back off!", outcome: "escalate"}
+            }
+          }
+        ],
+        tips: [
+          "Use one short sentence; long arguments invite debate.",
+          "Address the behavior, not the person.",
+          "Keep volume steady; avoid insults."
+        ],
+        winRule: "any cooling by turn 2"
+      };
+
+      // -------------
+      // State
+      // -------------
+      const state = {
+        turnIndex: 0,
+        lastTone: 'ASSERTIVE',
+        lastResponse: '',
+        outcomes: [],
+        mic: { stream: null, ctx: null, analyser: null, buf: null }
+      };
+
+      // -------------
+      // Helpers (UI)
+      // -------------
+      const $ = sel => document.querySelector(sel);
+      const af = sel => document.querySelector(sel);
+
+      const subtitle = af('#subtitle');
+      const youSaid  = af('#youSaid');
+      const npcMouth = af('#npcMouth');
+
+      function setSubtitle(text) {
+        subtitle.setAttribute('text','value', text);
+        npcTalk();
+      }
+      function setYouSaid(text) {
+        youSaid.setAttribute('text','value', text ? `You: ${text}` : '');
+      }
+      function npcTalk() {
+        // simple mouth wiggle for 1.2s
+        npcMouth.setAttribute('animation__talk', 'property: position; to: 0 0.11 0.15; dir: alternate; dur: 120; loop: 10; easing: easeInOutSine');
+        setTimeout(() => npcMouth.removeAttribute('animation__talk'), 1300);
+      }
+
+      // -------------
+      // Tone judging (RMS + pace proxy)
+      // -------------
+      async function enableMic() {
+        if (state.mic.stream) return true;
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const src = ctx.createMediaStreamSource(stream);
+          const analyser = ctx.createAnalyser();
+          analyser.fftSize = 2048;
+          src.connect(analyser);
+          state.mic = { stream, ctx, analyser, buf: new Float32Array(analyser.fftSize) };
+          $('#speakBtn').disabled = false;
+          return true;
+        } catch (e) {
+          alert('Microphone permission denied. You can still use the buttons.');
+          return false;
+        }
+      }
+
+      function measureTone(durationMs = 1000) {
+        return new Promise(resolve => {
+          const { analyser, buf } = state.mic;
+          const start = performance.now();
+          let sumAbs = 0, frames = 0, pace = 0, prev = 0;
+
+          function tick() {
+            analyser.getFloatTimeDomainData(buf);
+            let frameAbs = 0;
+            for (let i=0;i<buf.length;i++) {
+              const v = buf[i];
+              frameAbs += Math.abs(v);
+              pace += Math.abs(v - prev);
+              prev = v;
+            }
+            sumAbs += frameAbs / buf.length;
+            frames++;
+            if (performance.now() - start < durationMs) requestAnimationFrame(tick);
+            else {
+              const rms = (sumAbs / frames) || 0;
+              const paceNorm = pace / (frames * buf.length);
+              // thresholds tuned for typical mic levels; adjust if needed
+              let bucket = 'CALM';
+              if (rms > 0.6 || paceNorm > 0.008) bucket = 'AGGRESSIVE';
+              else if (rms >= 0.25) bucket = 'ASSERTIVE';
+              resolve({ rms: +rms.toFixed(3), pace: +paceNorm.toFixed(4), bucket });
+            }
+          }
+          tick();
+        });
+      }
+
+      function scoreResponse(turn, text, toneBucket) {
+        const t = (text || '').toLowerCase();
+        const hasGood = turn.good_keywords.some(k => t.includes(k));
+        const hasBad  = turn.bad_keywords.some(k => t.includes(k));
+        if ((hasGood && toneBucket !== 'AGGRESSIVE')) return 'STRONG';
+        if (hasBad || toneBucket === 'AGGRESSIVE')   return 'ESCALATE';
+        return 'NEUTRAL';
+      }
+
+      // -------------
+      // Game Flow
+      // -------------
+      function showTurn() {
+        const turn = SCENARIO_BUS_V1.turns[state.turnIndex];
+        setSubtitle(turn.npc_line);
+        setYouSaid('');
+      }
+
+      function applyChoice(kind, lineText) {
+        const turn = SCENARIO_BUS_V1.turns[state.turnIndex];
+
+        // Derive a "scripted transcript" for button choice
+        const transcripts = {
+          Direct:   "That's not okay. Please stop.",
+          Distract: "Hey, is this seat free?",
+          Delegate: "Driver, can you help here?"
+        };
+        const spoken = lineText || transcripts[kind] || '';
+        const tone   = state.mic.stream ? state.lastTone : 'ASSERTIVE'; // default assertive if buttons only
+
+        const branchKey = scoreResponse(turn, spoken, tone);
+        const branch = turn.branches[branchKey];
+        state.outcomes.push(branch.outcome);
+        state.lastResponse = spoken;
+
+        // Show NPC reaction
+        setYouSaid(spoken + (state.mic.stream ? `  (${tone})` : ''));
+        setSubtitle(branch.npc_react);
+
+        // Advance or end
+        setTimeout(() => {
+          if (state.turnIndex >= SCENARIO_BUS_V1.turns.length - 1) {
+            endGame();
+          } else {
+            state.turnIndex++;
+            showTurn();
+          }
+        }, 1200);
+      }
+
+      function endGame() {
+        // Win if any cooling
+        const win = state.outcomes.includes('cooling');
+        const card = af('#card');
+        const cardTitle = af('#cardTitle');
+        const cardBody = af('#cardBody');
+
+        if (win) {
+          cardTitle.setAttribute('text','value','✅ Good job — you cooled it down.');
+          cardBody.setAttribute('text','value',
+            `You said: “${state.lastResponse}”\nTone: ${state.lastTone}\n\nWhat worked:\n• Clear, short boundary.\n• No insults; steady pace.\n\nNext time:\n• Add support for the target: “Are you okay?”`
+          );
+        } else {
+          cardTitle.setAttribute('text','value','⚠️ Let’s improve — try a calmer boundary.');
+          cardBody.setAttribute('text','value',
+            `You said: “${state.lastResponse || '—'}”\nTone: ${state.lastTone}\n\nTry this line:\n“That's not okay. Please stop.”\n\nTips:\n• One sentence.\n• Behavior, not labels.\n• Keep volume steady.`
+          );
+        }
+
+        // Reveal card and hide main panel
+        af('#panel').setAttribute('visible','false');
+        card.setAttribute('visible','true');
+        uiBeep(true);
+      }
+
+      function resetGame() {
+        state.turnIndex = 0;
+        state.lastTone = 'ASSERTIVE';
+        state.lastResponse = '';
+        state.outcomes = [];
+        af('#card').setAttribute('visible','false');
+        af('#panel').setAttribute('visible','true');
+        showTurn();
+      }
+
+      // -------------
+      // Click handlers (buttons)
+      // -------------
+      function makeClickable(el, onClick) {
+        el.addEventListener('click', onClick);
+        // visual hover dot via controller rays:
+        ['rightHand','leftHand'].forEach(id=>{
+          const rcEl = af('#'+id);
+          rcEl.addEventListener('raycaster-intersection', e=>{
+            const isHit = e.detail.els && Array.from(e.detail.els).includes(el);
+            if (!isHit) return;
+            const hit = e.detail.intersections?.find(i => i.object.el === el);
+            if (!hit) return;
+            const p = hit.point;
+            const dot = af('#hoverDot');
+            dot.object3D.position.set(p.x, p.y, p.z);
+            dot.setAttribute('visible','true');
+          });
+          rcEl.addEventListener('raycaster-intersection-cleared', ()=>{
+            af('#hoverDot').setAttribute('visible','false');
+          });
+        });
+      }
+
+      // Attach to option planes
+      makeClickable(af('#optDirect'),  ()=> applyChoice('Direct'));
+      makeClickable(af('#optDistract'), ()=> applyChoice('Distract'));
+      makeClickable(af('#optDelegate'), ()=> applyChoice('Delegate'));
+
+      // -------------
+      // Mic & Speak buttons (2D UI)
+      // -------------
+      $('#micBtn').addEventListener('click', async ()=>{
+        const ok = await enableMic();
+        if (ok) { $('#micBtn').textContent = 'Mic Enabled'; }
+      });
+
+      $('#speakBtn').addEventListener('click', async ()=>{
+        if (!state.mic.stream) { alert('Enable Mic first or use the buttons.'); return; }
+        // 1-second capture for tone
+        $('#speakBtn').textContent = 'Listening…';
+        const { bucket } = await measureTone(1000);
+        state.lastTone = bucket;
+        $('#speakBtn').textContent = 'Speak Now (1s)';
+
+        // Optional desktop STT (Quest often lacks Web Speech API)
+        let transcript = '';
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+          try {
+            transcript = await runSTT(1200); // best effort
+          } catch {}
+        }
+        if (!transcript) {
+          // No STT → prompt user to select closest button OR echo tone only
+          const hint = bucket === 'AGGRESSIVE'
+            ? "Try one short sentence without insults."
+            : "Pick one of the options below or say a short boundary line.";
+          setYouSaid(`(Voice tone: ${bucket}). ${hint}`);
+          return;
+        }
+        // Apply choice using transcript text + tone
+        applyChoice('Voice', transcript);
+      });
+
+      // Simple STT wrapper (desktop Chrome)
+      function runSTT(timeoutMs=1500) {
+        return new Promise((resolve, reject) => {
+          const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+          if (!SR) return resolve('');
+          const rec = new SR();
+          rec.lang = 'en-US';
+          rec.interimResults = false;
+          rec.maxAlternatives = 1;
+          let resolved = false;
+
+          const t = setTimeout(()=>{ if(!resolved){ resolved=true; rec.stop(); resolve(''); }}, timeoutMs+400);
+
+          rec.onresult = (e) => {
+            if (resolved) return;
+            resolved = true;
+            clearTimeout(t);
+            const text = e.results[0][0].transcript || '';
+            setYouSaid(text);
+            resolve(text);
+          };
+          rec.onerror = () => { if(!resolved){ resolved=true; clearTimeout(t); resolve(''); } };
+          rec.onend = () => { if(!resolved){ resolved=true; clearTimeout(t); resolve(''); } };
+          rec.start();
+          setTimeout(()=>rec.stop(), timeoutMs);
+        });
+      }
+
+      // -------------
+      // Feedback card: Save PNG / Replay
+      // -------------
+      makeClickable(af('#btnReplay'), ()=> resetGame());
+      makeClickable(af('#btnSave'), ()=> exportCardPNG());
+
+      function exportCardPNG() {
+        // Draw an equivalent of the card onto a 2D canvas and download
+        const title = af('#cardTitle').getAttribute('text').value;
+        const body  = af('#cardBody').getAttribute('text').value;
+
+        const pad = 20, w = 840, h = 520;
+        const cnv = document.createElement('canvas');
+        cnv.width = w; cnv.height = h;
+        const ctx = cnv.getContext('2d');
+
+        // bg
+        ctx.fillStyle = '#00152b'; ctx.fillRect(0,0,w,h);
+        // title
+        ctx.fillStyle = '#a7f3d0'; ctx.font = 'bold 22px system-ui, Segoe UI, Roboto';
+        ctx.fillText(title, pad, pad+24);
+        // body (wrap)
+        ctx.fillStyle = '#e7edf7'; ctx.font = '16px system-ui, Segoe UI, Roboto';
+        const lines = wrapText(ctx, body, w - pad*2);
+        let y = pad + 58;
+        lines.forEach(line => { ctx.fillText(line, pad, y); y += 22; });
+
+        const a = document.createElement('a');
+        a.href = cnv.toDataURL('image/png'); a.download = 'bystander_coach_card.png';
+        a.click();
+      }
+      function wrapText(ctx, text, maxWidth) {
+        const words = text.split(/\s+/), lines = [];
+        let line = '';
+        for (const w of words) {
+          const test = line ? line + ' ' + w : w;
+          if (ctx.measureText(test).width > maxWidth) {
+            if (line) lines.push(line);
+            line = w;
+          } else line = test;
+        }
+        if (line) lines.push(line);
+        return lines;
+      }
+
+      // -------------
+      // Tiny audio cues
+      // -------------
+      function uiBeep(ok=true) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AC();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = 'sine';
+        o.frequency.value = ok ? 960 : 220;
+        g.gain.value = 0.0001;
+        o.start();
+        // ramp up/down quickly
+        g.gain.exponentialRampToValueAtTime(0.02, ctx.currentTime + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.18);
+        o.stop(ctx.currentTime + 0.2);
+      }
+
+      // -------------
+      // Init
+      // -------------
+      document.addEventListener('DOMContentLoaded', () => {
+        // initial subtitle (turn 1)
+        showTurn();
+      });
+    </script>
+  </a-scene>
+</body>
+</html>
