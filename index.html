@@ -1,641 +1,142 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bystander Coach VR Training</title>
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/speech-recognition-polyfill@0.1.4/dist/speech-recognition.min.js"></script>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  />
+  <title>Bystander Coach — VR (Expressive NPC)</title>
+
+  <!-- A-Frame core -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <!-- Animation mixer for glTF clips -->
+  <script src="https://cdn.jsdelivr.net/gh/n5ro/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
+  <!-- Look-at helper so NPCs track the camera a bit -->
+  <script src="https://cdn.jsdelivr.net/npm/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
+  <!-- Optional speech API polyfill for desktop -->
+  <script src="https://cdn.jsdelivr.net/npm/speech-recognition-polyfill@0.1.4/dist/speech-recognition.min.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <div id="loadingScreen">
-        <div>Loading Bystander Coach VR Training</div>
-        <div class="pulse">Please wait...</div>
-    </div>
-    
-    <canvas id="exportCanvas" width="800" height="600"></canvas>
-    
-    <button id="micPermission">Enable Microphone</button>
-    <div id="micStatus">Microphone: Disabled</div>
-    <div id="hint">Point at buttons with your controller and click to select responses</div>
-    
-    <a-scene 
-        background="color: #2c3e50" 
-        webxr="requiredFeatures: local-floor; optionalFeatures: hand-tracking"
-        xr-mode-ui="enabled: true"
-        loading-screen="enabled: false">
-        
-        <!-- Camera Rig -->
-        <a-entity id="rig" movement-controls="speed: 0.5">
-            <a-camera id="camera" position="0 1.6 0">
-                <a-cursor 
-                    id="gazeCursor"
-                    object3D="position: 0 0 -1"
-                    raycaster="objects: .clickable"
-                    animation__click="property: scale; startEvents: click; from: 0.1 0.1 0.1; to: 1 1 1; dur: 150">
-                </a-cursor>
-            </a-camera>
-            
-            <!-- Left controller -->
-            <a-entity 
-                laser-controls="hand: left" 
-                raycaster="objects: .clickable"
-                line="color: #3498db; opacity: 0.7">
-                <a-entity 
-                    class="hover-indicator"
-                    geometry="primitive: sphere; radius: 0.015"
-                    material="color: #f1c40f; shader: flat"
-                    visible="false">
-                </a-entity>
-            </a-entity>
-            
-            <!-- Right controller -->
-            <a-entity 
-                laser-controls="hand: right" 
-                raycaster="objects: .clickable"
-                line="color: #3498db; opacity: 0.7">
-                <a-entity 
-                    class="hover-indicator"
-                    geometry="primitive: sphere; radius: 0.015"
-                    material="color: #f1c40f; shader: flat"
-                    visible="false">
-                </a-entity>
-            </a-entity>
-        </a-entity>
-        
-        <!-- Lighting -->
-        <a-light type="ambient" color="#BBB" intensity="0.6"></a-light>
-        <a-light type="directional" color="#FFF" intensity="0.9" position="-1 3 1" cast-shadow="true"></a-light>
-        <a-light type="point" color="#e67e22" intensity="0.5" position="2 3 -3"></a-light>
-        
-        <!-- Environment: Bus Interior -->
-        <a-entity id="busEnvironment">
-            <!-- Bus floor -->
-            <a-plane 
-                position="0 0 0" 
-                rotation="-90 0 0" 
-                width="10" 
-                height="20" 
-                color="#7f8c8d" 
-                shadow="receive: true"
-                roughness="0.8">
-            </a-plane>
-            
-            <!-- Bus ceiling -->
-            <a-plane 
-                position="0 3.5 0" 
-                rotation="90 0 0" 
-                width="10" 
-                height="20" 
-                color="#34495e" 
-                roughness="0.7">
-            </a-plane>
-            
-            <!-- Bus left wall -->
-            <a-plane 
-                position="-5 1.75 0" 
-                rotation="0 90 0" 
-                width="7" 
-                height="3.5" 
-                color="#2c3e50" 
-                roughness="0.6">
-            </a-plane>
-            
-            <!-- Bus right wall -->
-            <a-plane 
-                position="5 1.75 0" 
-                rotation="0 -90 0" 
-                width="7" 
-                height="3.5" 
-                color="#2c3e50" 
-                roughness="0.6">
-            </a-plane>
-            
-            <!-- Bus back wall -->
-            <a-plane 
-                position="0 1.75 -10" 
-                rotation="0 0 0" 
-                width="10" 
-                height="3.5" 
-                color="#2c3e50" 
-                roughness="0.6">
-            </a-plane>
-            
-            <!-- Bus front (with windshield) -->
-            <a-plane 
-                position="0 1.75 10" 
-                rotation="0 180 0" 
-                width="10" 
-                height="3.5" 
-                color="#2c3e50" 
-                roughness="0.6">
-                <!-- Windshield -->
-                <a-plane 
-                    position="0 0.5 0.1" 
-                    rotation="0 0 0" 
-                    width="6" 
-                    height="1.5" 
-                    color="#3498db" 
-                    opacity="0.3">
-                </a-plane>
-            </a-plane>
-            
-            <!-- Bus seats -->
-            <a-entity id="busSeats">
-                <!-- Driver seat -->
-                <a-box 
-                    position="-2 0.5 8" 
-                    width="1" 
-                    height="1" 
-                    depth="1" 
-                    color="#c0392b"
-                    roughness="0.7">
-                </a-box>
-                
-                <!-- Passenger seats (two rows) -->
-                <a-box 
-                    position="-2 0.5 5" 
-                    width="1" 
-                    height="1" 
-                    depth="1" 
-                    color="#16a085"
-                    roughness="0.7">
-                </a-box>
-                
-                <a-box 
-                    position="2 0.5 5" 
-                    width="1" 
-                    height="1" 
-                    depth="1" 
-                    color="#16a085"
-                    roughness="0.7">
-                </a-box>
-                
-                <a-box 
-                    position="-2 0.5 2" 
-                    width="1" 
-                    height="1" 
-                    depth="1" 
-                    color="#16a085"
-                    roughness="0.7">
-                </a-box>
-                
-                <a-box 
-                    position="2 0.5 2" 
-                    width="1" 
-                    height="1" 
-                    depth="1" 
-                    color="#16a085"
-                    roughness="0.7">
-                </a-box>
-            </a-entity>
-            
-            <!-- Bus details -->
-            <a-entity id="busDetails">
-                <!-- Handrails -->
-                <a-cylinder 
-                    position="-3 1.5 0" 
-                    radius="0.03" 
-                    height="3" 
-                    color="#e74c3c"
-                    rotation="0 0 90">
-                </a-cylinder>
-                
-                <a-cylinder 
-                    position="3 1.5 0" 
-                    radius="0.03" 
-                    height="3" 
-                    color="#e74c3c"
-                    rotation="0 0 90">
-                </a-cylinder>
-                
-                <!-- Overhead luggage racks -->
-                <a-box 
-                    position="0 2.8 0" 
-                    width="8" 
-                    height="0.1" 
-                    depth="18" 
-                    color="#95a5a6"
-                    roughness="0.8">
-                </a-box>
-            </a-entity>
-        </a-entity>
-        
-        <!-- NPCs: Angry Passenger and Bus Driver -->
-        <a-entity id="npcs">
-            <!-- Angry Passenger -->
-            <a-entity id="angryPassenger" position="1 0 6">
-                <!-- Body -->
-                <a-cylinder 
-                    position="0 0.9 0" 
-                    radius="0.2" 
-                    height="1.8" 
-                    color="#e74c3c"
-                    roughness="0.6">
-                </a-cylinder>
-                
-                <!-- Head -->
-                <a-sphere 
-                    position="0 1.8 0" 
-                    radius="0.25" 
-                    color="#f39c12">
-                </a-sphere>
-                
-                <!-- Arms -->
-                <a-cylinder 
-                    position="-0.3 1.3 0" 
-                    radius="0.05" 
-                    height="0.6" 
-                    color="#e74c3c"
-                    rotation="0 0 45">
-                </a-cylinder>
-                
-                <a-cylinder 
-                    position="0.3 1.3 0" 
-                    radius="0.05" 
-                    height="0.6" 
-                    color="#e74c3c"
-                    rotation="0 0 -45">
-                </a-cylinder>
-                
-                <!-- Animation: Angry gestures -->
-                <a-animation 
-                    attribute="rotation" 
-                    dur="1000" 
-                    from="0 0 -5" 
-                    to="0 0 5" 
-                    direction="alternate" 
-                    repeat="indefinite"
-                    easing="easeInOutSine">
-                </a-animation>
-                
-                <!-- Speech bubble (initially hidden) -->
-                <a-entity id="passengerBubble" position="0 2.5 0" visible="false">
-                    <a-plane 
-                        width="1.5" 
-                        height="0.5" 
-                        color="#34495e" 
-                        opacity="0.9"
-                        position="0 0 0">
-                    </a-plane>
-                    <a-text 
-                        id="passengerText"
-                        value="" 
-                        width="1.3"
-                        align="center" 
-                        wrap-count="20"
-                        color="white" 
-                        position="0 0 0.01"
-                        font="https://cdn.aframe.io/fonts/mozillavr.fnt">
-                    </a-text>
-                </a-entity>
-            </a-entity>
-            
-            <!-- Bus Driver -->
-            <a-entity id="busDriver" position="-2 0 8">
-                <!-- Body -->
-                <a-cylinder 
-                    position="0 0.9 0" 
-                    radius="0.2" 
-                    height="1.8" 
-                    color="#3498db"
-                    roughness="0.6">
-                </a-cylinder>
-                
-                <!-- Head -->
-                <a-sphere 
-                    position="0 1.8 0" 
-                    radius="0.25" 
-                    color="#f39c12">
-                </a-sphere>
-                
-                <!-- Arms on steering wheel -->
-                <a-cylinder 
-                    position="0.15 1.4 0.2" 
-                    radius="0.05" 
-                    height="0.4" 
-                    color="#3498db"
-                    rotation="30 0 0">
-                </a-cylinder>
-                
-                <!-- Animation: Nervous head shaking -->
-                <a-animation 
-                    attribute="rotation" 
-                    dur="2000" 
-                    from="0 0 -2" 
-                    to="0 0 2" 
-                    direction="alternate" 
-                    repeat="indefinite"
-                    easing="easeInOutSine">
-                </a-animation>
-                
-                <!-- Steering wheel -->
-                <a-torus 
-                    position="0.3 1.5 0.3" 
-                    radius="0.2" 
-                    arc="360" 
-                    color="#7f8c8d"
-                    rotation="0 0 90">
-                </a-torus>
-                
-                <!-- Speech bubble (initially hidden) -->
-                <a-entity id="driverBubble" position="0 2.5 0" visible="false">
-                    <a-plane 
-                        width="1.5" 
-                        height="0.5" 
-                        color="#34495e" 
-                        opacity="0.9"
-                        position="0 0 0">
-                    </a-plane>
-                    <a-text 
-                        id="driverText"
-                        value="" 
-                        width="1.3"
-                        align="center" 
-                        wrap-count="20"
-                        color="white" 
-                        position="0 0 0.01"
-                        font="https://cdn.aframe.io/fonts/mozillavr.fnt">
-                    </a-text>
-                </a-entity>
-            </a-entity>
-        </a-entity>
-        
-        <!-- UI Panel -->
-        <a-entity id="uiPanel" position="0 1.5 -1.5">
-            <!-- Panel background with subtle animation -->
-            <a-plane 
-                id="panelBg"
-                width="2" 
-                height="1.5" 
-                color="#2c3e50" 
-                opacity="0.95"
-                position="0 0 0"
-                animation="property: position; from: 0 1.8 -1.5; to: 0 1.5 -1.5; dur: 1000; easing: easeOutBack">
-            </a-plane>
-            
-            <!-- Panel frame -->
-            <a-plane 
-                width="2.05" 
-                height="1.55" 
-                color="#3498db" 
-                opacity="0.8"
-                position="0 0 -0.01"
-                wireframe="true"
-                wireframe-linewidth="3">
-            </a-plane>
-            
-            <!-- Subtitle text -->
-            <a-text 
-                id="subtitle"
-                value="Welcome to Bystander Coach" 
-                width="1.8"
-                align="center" 
-                wrap-count="25"
-                color="white" 
-                position="0 0.5 0.01"
-                font="https://cdn.aframe.io/fonts/mozillavr.fnt"
-                animation="property: scale; from: 0.5 0.5 0.5; to: 1 1 1; dur: 800; delay: 300">
-            </a-text>
-            
-            <!-- Response buttons -->
-            <a-entity id="responseButtons" visible="false">
-                <!-- Button 1: Direct -->
-                <a-box 
-                    class="clickable response-btn"
-                    data-choice="Direct"
-                    width="1.4" 
-                    height="0.25" 
-                    depth="0.05"
-                    color="#27ae60"
-                    position="0 0.1 0.01"
-                    event-set__mouseenter="scale: 1.05 1.05 1.05; color: #2ecc71"
-                    event-set__mouseleave="scale: 1 1 1; color: #27ae60"
-                    animation="property: position; from: 0 -0.5 0.01; to: 0 0.1 0.01; dur: 800; delay: 500">
-                    <a-text 
-                        value="Direct: Calmly address the situation" 
-                        align="center" 
-                        color="white" 
-                        position="0 0 0.03"
-                        width="1.3">
-                    </a-text>
-                </a-box>
-                
-                <!-- Button 2: Distract -->
-                <a-box 
-                    class="clickable response-btn"
-                    data-choice="Distract"
-                    width="1.4" 
-                    height="0.25" 
-                    depth="0.05"
-                    color="#2980b9"
-                    position="0 -0.2 0.01"
-                    event-set__mouseenter="scale: 1.05 1.05 1.05; color: #3498db"
-                    event-set__mouseleave="scale: 1 1 1; color: #2980b9"
-                    animation="property: position; from: 0 -0.5 0.01; to: 0 -0.2 0.01; dur: 800; delay: 600">
-                    <a-text 
-                        value="Distract: Redirect attention" 
-                        align="center" 
-                        color="white" 
-                        position="0 0 0.03"
-                        width="1.3">
-                    </a-text>
-                </a-box>
-                
-                <!-- Button 3: Delegate -->
-                <a-box 
-                    class="clickable response-btn"
-                    data-choice="Delegate"
-                    width="1.4" 
-                    height="0.25" 
-                    depth="0.05"
-                    color="#e67e22"
-                    position="0 -0.5 0.01"
-                    event-set__mouseenter="scale: 1.05 1.05 1.05; color: #f39c12"
-                    event-set__mouseleave="scale: 1 1 1; color: #e67e22"
-                    animation="property: position; from: 0 -0.5 0.01; to: 0 -0.5 0.01; dur: 800; delay: 700">
-                    <a-text 
-                        value="Delegate: Seek help from authority" 
-                        align="center" 
-                        color="white" 
-                        position="0 0 0.03"
-                        width="1.3">
-                    </a-text>
-                </a-box>
-            </a-entity>
-            
-            <!-- Voice input section -->
-            <a-entity id="voiceInputSection" visible="false">
-                <a-box 
-                    id="speakNowBtn"
-                    class="clickable"
-                    width="1.4" 
-                    height="0.25" 
-                    depth="0.05"
-                    color="#9b59b6"
-                    position="0 -0.8 0.01"
-                    event-set__mouseenter="scale: 1.05 1.05 1.05; color: #8e44ad"
-                    event-set__mouseleave="scale: 1 1 1; color: #9b59b6"
-                    animation="property: position; from: 0 -1.2 0.01; to: 0 -0.8 0.01; dur: 800; delay: 800">
-                    <a-text 
-                        value="Speak Your Response (Click and hold)" 
-                        align="center" 
-                        color="white" 
-                        position="0 0 0.03"
-                        width="1.3">
-                    </a-text>
-                </a-box>
-                
-                <!-- Transcript display -->
-                <a-text 
-                    id="transcript"
-                    value="" 
-                    width="1.8"
-                    align="center" 
-                    wrap-count="25"
-                    color="#f1c40f" 
-                    position="0 -1.1 0.01"
-                    font="https://cdn.aframe.io/fonts/mozillavr.fnt">
-                </a-text>
-            </a-entity>
-        </a-entity>
-        
-        <!-- Feedback Card -->
-        <a-entity id="feedbackCard" position="0 1.5 -0.8" scale="0 0 0" visible="false">
-            <!-- Card background with animation -->
-            <a-plane 
-                width="2" 
-                height="2" 
-                color="#2c3e50" 
-                opacity="0.97"
-                position="0 0 0"
-                animation="property: scale; from: 0 0 0; to: 1 1 1; dur: 1000; easing: easeOutBack">
-            </a-plane>
-            
-            <!-- Card frame -->
-            <a-plane 
-                width="2.05" 
-                height="2.05" 
-                color="#3498db" 
-                opacity="0.8"
-                position="0 0 -0.01"
-                wireframe="true"
-                wireframe-linewidth="3">
-            </a-plane>
-            
-            <!-- Card title -->
-            <a-text 
-                value="Training Feedback" 
-                width="1.8"
-                align="center" 
-                color="#f1c40f" 
-                position="0 0.8 0.01"
-                font="https://cdn.aframe.io/fonts/mozillavr.fnt">
-            </a-text>
-            
-            <!-- Response summary -->
-            <a-text 
-                id="feedbackResponse"
-                value="" 
-                width="1.8"
-                align="center" 
-                wrap-count="25"
-                color="#e74c3c" 
-                position="0 0.5 0.01"
-                font="https://cdn.aframe.io/fonts/mozillavr.fnt">
-            </a-text>
-            
-            <!-- Tone summary -->
-            <a-text 
-                id="feedbackTone"
-                value="" 
-                width="1.8"
-                align="center" 
-                wrap-count="25"
-                color="#3498db" 
-                position="0 0.3 0.01"
-                font="https://cdn.aframe.io/fonts/mozillavr.fnt">
-            </a-text>
-            
-            <!-- What went well -->
-            <a-text 
-                id="feedbackPositive"
-                value="" 
-                width="1.8"
-                align="center" 
-                wrap-count="25"
-                color="#27ae60" 
-                position="0 0.1 0.01"
-                font="https://cdn.aframe.io/fonts/mozillavr.fnt">
-            </a-text>
-            
-            <!-- Suggestion -->
-            <a-text 
-                id="feedbackSuggestion"
-                value="" 
-                width="1.8"
-                align="center" 
-                wrap-count="25"
-                color="#e67e22" 
-                position="0 -0.1 0.01"
-                font="https://cdn.aframe.io/fonts/mozillavr.fnt">
-            </a-text>
-            
-            <!-- Better line suggestion -->
-            <a-text 
-                id="feedbackBetterLine"
-                value="" 
-                width="1.8"
-                align="center" 
-                wrap-count="25"
-                color="#9b59b6" 
-                position="0 -0.3 0.01"
-                font="https://cdn.aframe.io/fonts/mozillavr.fnt">
-            </a-text>
-            
-            <!-- Save Card button -->
-            <a-box 
-                id="saveCardBtn"
-                class="clickable"
-                width="0.9" 
-                height="0.2" 
-                depth="0.05"
-                color="#27ae60"
-                position="-0.5 -0.7 0.01"
-                event-set__mouseenter="scale: 1.05 1.05 1.05; color: #2ecc71"
-                event-set__mouseleave="scale: 1 1 1; color: #27ae60">
-                <a-text 
-                    value="Save Card" 
-                    align="center" 
-                    color="white" 
-                    position="0 0 0.03"
-                    width="0.8">
-                </a-text>
-            </a-box>
-            
-            <!-- Replay button -->
-            <a-box 
-                id="replayBtn"
-                class="clickable"
-                width="0.9" 
-                height="0.2" 
-                depth="0.05"
-                color="#3498db"
-                position="0.5 -0.7 0.01"
-                event-set__mouseenter="scale: 1.05 1.05 1.05; color: #2980b9"
-                event-set__mouseleave="scale: 1 1 1; color: #3498db">
-                <a-text 
-                    value="Replay"
-                    align="center" 
-                    color="white" 
-                    position="0 0 0.03"
-                    width="0.8">
-                </a-text>
-            </a-box>
-        </a-entity>
-    </a-scene>
+  <!-- 2D HUD -->
+  <div id="loadingScreen">
+    <div>Loading Bystander Coach</div>
+    <div class="pulse">Please wait…</div>
+  </div>
 
+  <canvas id="exportCanvas" width="880" height="560"></canvas>
+
+  <button id="micPermission">Enable Microphone</button>
+  <div id="micStatus">Microphone: Disabled</div>
+  <div id="hint">
+    Quest: point with controller ray & pull trigger. Desktop: drag to look, WASD to move.
+    Use <b>Enable Microphone</b> then <b>Speak</b> (or choose one of the three options).
+  </div>
+
+  <a-scene
+    background="color: #0b0f17"
+    webxr="requiredFeatures: local-floor; optionalFeatures: hand-tracking"
+    vr-mode-ui="enabled: true"
+    loading-screen="enabled: false"
+  >
+    <!-- Camera rig + gaze cursor + controller rays -->
+    <a-entity id="rig" position="0 1.6 2.2">
+      <a-entity id="camera" camera look-controls wasd-controls="acceleration: 10">
+        <a-entity
+          id="gazeCursor"
+          cursor="fuse:false"
+          position="0 0 -1"
+          geometry="primitive:ring; radiusInner:0.01; radiusOuter:0.015"
+          material="color:#e2e8f0; shader:flat; opacity:.85"
+          raycaster="objects:.clickable"
+        ></a-entity>
+      </a-entity>
+
+      <a-entity id="rightHand" laser-controls="hand: right" raycaster="objects: .clickable; far: 8;"></a-entity>
+      <a-entity id="leftHand"  laser-controls="hand: left"  raycaster="objects: .clickable; far: 8;"></a-entity>
+    </a-entity>
+
+    <!-- Lights + simple “bus” floor -->
+    <a-entity light="type: hemisphere; color: #ffffff; groundColor: #223; intensity: 1.0"></a-entity>
+    <a-entity geometry="primitive: plane; width: 30; height: 30" rotation="-90 0 0"
+              material="color: #101827; roughness: 1"></a-entity>
+
+    <!-- NPCs (externally sourced models) -->
+    <!-- Expressive aggressor (RobotExpressive: has blendshapes + clips) -->
+    <a-entity id="npcAggressor"
+      gltf-model="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/RobotExpressive/glTF-Binary/RobotExpressive.glb"
+      position="0 0 -1.6" rotation="0 180 0" scale="0.75 0.75 0.75"
+      animation-mixer="clip: Idle; loop: repeat"
+      look-at="#camera">
+    </a-entity>
+
+    <!-- Driver / authority (CesiumMan: neutral human stand-in) -->
+    <a-entity id="npcDriver"
+      gltf-model="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CesiumMan/glTF-Binary/CesiumMan.glb"
+      position="-1.6 0 -2.6" rotation="0 150 0" scale="0.9 0.9 0.9"
+      animation-mixer="clip: idle; loop: repeat"
+      look-at="#camera">
+    </a-entity>
+
+    <!-- Hover dot (ray hits) -->
+    <a-entity id="hoverDot" geometry="primitive: sphere; radius: 0.01"
+              material="color:#93c5fd" visible="false"></a-entity>
+
+    <!-- Panel with dynamic subtitle + options -->
+    <a-entity id="uiPanel" position="0 1.1 -1.0" rotation="0 0 0">
+      <a-entity id="panelBg" geometry="primitive: plane; width: 1.38; height: 0.88"
+                material="color: #071426; opacity: .95; side: double"></a-entity>
+
+      <a-entity id="subtitle" position="-0.64 0.30 0.01"
+                text="value: ; color:#e7edf7; width:1.25; wrapCount: 38; align: left"></a-entity>
+      <a-entity id="youSaid" position="-0.64 0.15 0.01"
+                text="value: ; color:#9fb6d1; width:1.25; wrapCount: 38; align: left"></a-entity>
+
+      <!-- Three context-specific options (labels change every round) -->
+      <a-entity id="opt1" class="clickable option"
+                geometry="primitive: plane; width: 1.25; height: 0.12"
+                position="0 -0.02 0.01" material="color: #0d203a">
+        <a-entity id="opt1text" position="-0.60 0 0"
+          text="value: ; color:#e5efff; width: 1.15; wrapCount: 36; align: left"></a-entity>
+      </a-entity>
+      <a-entity id="opt2" class="clickable option"
+                geometry="primitive: plane; width: 1.25; height: 0.12"
+                position="0 -0.20 0.01" material="color: #0c1b31">
+        <a-entity id="opt2text" position="-0.60 0 0"
+          text="value: ; color:#dbeafe; width: 1.15; wrapCount: 36; align: left"></a-entity>
+      </a-entity>
+      <a-entity id="opt3" class="clickable option"
+                geometry="primitive: plane; width: 1.25; height: 0.12"
+                position="0 -0.38 0.01" material="color: #0a1627">
+        <a-entity id="opt3text" position="-0.60 0 0"
+          text="value: ; color:#c7d2fe; width: 1.15; wrapCount: 36; align: left"></a-entity>
+      </a-entity>
+    </a-entity>
+
+    <!-- Feedback Card -->
+    <a-entity id="feedbackCard" visible="false" position="0 1.1 -0.9" scale="0 0 0">
+      <a-entity geometry="primitive: plane; width: 1.38; height: 0.88"
+                material="color: #00152b; opacity: .98; side: double"></a-entity>
+      <a-entity id="cardTitle" position="-0.64 0.30 0.01"
+                text="value: ; color: #a7f3d0; width: 1.25; wrapCount: 38; align: left"></a-entity>
+      <a-entity id="cardBody" position="-0.64 0.10 0.01"
+                text="value: ; color: #e7edf7; width: 1.25; wrapCount: 38; align: left"></a-entity>
+      <a-entity id="btnSave" class="clickable"
+                geometry="primitive: plane; width: 0.56; height: 0.12"
+                position="-0.30 -0.28 0.01" material="color: #0f2d4a">
+        <a-entity text="value: Save Card (PNG); color:#e0f2fe; width: 0.5; align: center"></a-entity>
+      </a-entity>
+      <a-entity id="btnReplay" class="clickable"
+                geometry="primitive: plane; width: 0.56; height: 0.12"
+                position="0.30 -0.28 0.01" material="color: #0b2b33">
+        <a-entity text="value: Replay; color:#d1fae5; width: 0.5; align: center"></a-entity>
+      </a-entity>
+    </a-entity>
+
+    <!-- Attach logic last -->
     <script src="script.js"></script>
+  </a-scene>
 </body>
 </html>
