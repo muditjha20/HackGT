@@ -1,38 +1,54 @@
-/* Layout / HUD */
+/* Base / HUD */
 body {
   margin: 0;
   overflow: hidden;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background: #070a10;
 }
 
-#micPermission {
+.hud-left {
   position: absolute;
-  bottom: 20px;
-  left: 20px;
-  padding: 12px 18px;
-  background: rgba(0, 120, 240, 0.95);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
+  left: 16px;
+  bottom: 16px;
   z-index: 1000;
-  font-size: 15px;
-  box-shadow: 0 6px 16px rgba(0,0,0,.35);
-  transition: transform .2s ease, background .2s ease;
+  display: grid;
+  gap: 10px;
 }
-#micPermission:hover { transform: translateY(-1px) scale(1.03); }
 
-#micStatus {
+.hud-top {
   position: absolute;
-  bottom: 70px;
-  left: 20px;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
   color: #e5e7eb;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0,0,0,.5);
+  padding: 8px 12px;
+  border-radius: 10px;
+  backdrop-filter: blur(4px);
+  text-align: center;
+  font-size: 14px;
+}
+
+.btn2d {
+  color: #e5e7eb;
+  background: #0d274c;
+  border: 1px solid #35507a;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 14px;
+  box-shadow: 0 6px 16px rgba(0,0,0,.3);
+}
+.btn2d:disabled { opacity: .5; cursor: not-allowed; }
+.btn2d:active { transform: translateY(1px); }
+
+.status {
+  color: #d1d5db;
+  background: rgba(0,0,0,.45);
   padding: 8px 12px;
   border-radius: 8px;
-  z-index: 1000;
-  font-size: 14px;
-  backdrop-filter: blur(4px);
+  font-size: 13px;
 }
 
 #loadingScreen {
@@ -48,27 +64,11 @@ body {
 
 #exportCanvas { display: none; }
 
-#hint {
-  position: absolute;
-  top: 14px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: #e5e7eb;
-  background: rgba(0, 0, 0, 0.55);
-  padding: 10px 14px;
-  border-radius: 10px;
-  z-index: 1000;
-  font-size: 14px;
-  text-align: center;
-  backdrop-filter: blur(4px);
-  max-width: 82ch;
-}
-
-/* Option hover feedback (applies to .clickable planes) */
+/* Interactables */
 .clickable { cursor: pointer; }
 .option:hover { filter: brightness(1.15); }
 
-/* Feedback card borders (set dynamically as classes if you want) */
-.feedback-success { outline: 3px solid #27ae60; }
-.feedback-neutral { outline: 3px solid #f39c12; }
+/* Feedback accents (usable if you want via classList) */
+.feedback-success { outline: 3px solid #1abc9c; }
+.feedback-neutral { outline: 3px solid #f1c40f; }
 .feedback-escalate { outline: 3px solid #e74c3c; }

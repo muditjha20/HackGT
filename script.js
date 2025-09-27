@@ -1,106 +1,108 @@
 // ===============================
-// Bystander Coach — Expressive NPC + Solid Logic
+// Bystander Coach — Reactive NPC + Strong Logic
 // ===============================
 
-// ---------- Scenario with context-specific options ----------
+// -------- Scenario (round-specific, clearly good/neutral/bad) --------
 const SCENARIO = {
   rounds: [
     {
       name: 'Round 1 — Set a boundary',
-      npc_line: "Move. That’s my seat — now.",
+      npc_line: "Hey, move. That’s my seat — now.",
       options: [
-        { label: "Direct: “That’s not okay. Please stop.”", tag: "DIRECT",
-          good: ["not okay","please stop","stop"], bad: ["idiot","shut up","stupid"] },
-        { label: "Distract: “Hey—can you help me with the next stop?”", tag: "DISTRACT",
-          good: ["help me","next stop","what stop"], bad: [] },
-        { label: "Delegate: “Driver, can you assist—there’s a situation here.”", tag: "DELEGATE",
-          good: ["driver","assist","help"], bad: [] }
+        { label: "Direct boundary: “That’s not okay. Please stop.”", tag: "DIRECT",   effect: "DEESCALATE",
+          good: ["that's not okay","please stop","not okay","stop"], bad: [] },
+        { label: "Distract politely: “Hey—does this bus stop at North Ave?”", tag: "DISTRACT", effect: "NEUTRAL",
+          good: ["north ave","next stop","what stop"], bad: [] },
+        { label: "Insult back (don’t do this): “Shut up and sit somewhere else.”", tag: "INSULT",   effect: "ESCALATE",
+          good: [], bad: ["shut up","idiot","stupid","moron","freak"] }
       ],
-      branches: {
-        STRONG:   { react: "…Whatever. Just saying.", outcome: "cooling" },
-        NEUTRAL:  { react: "Mind your business.",     outcome: "stall"   },
-        ESCALATE: { react: "You wanna go?",           outcome: "escalate"}
+      replies: {
+        STRONG:   ["…Whatever. I’m just saying.", "Fine. Chill.", "Okay, okay."],
+        NEUTRAL:  ["Mind your business.", "Huh?", "What?"],
+        ESCALATE: ["You wanna go?", "Oh yeah? Try me.", "Say that again."]
       }
     },
     {
-      name: 'Round 2 — Hold ground briefly',
-      npc_line: "Why do you care?",
+      name: 'Round 2 — Hold ground / route to help',
+      npc_line: "Why do you care? They can speak for themselves.",
       options: [
-        { label: "Direct (short): “Everyone deserves respect.”",  tag: "DIRECT",
-          good: ["respect","deserves"], bad: ["loser","stupid"] },
-        { label: "De-escalate: “We’re just riding. Let them be.”", tag: "DEESC",
+        { label: "Delegate to authority: “Driver, could you help here?”", tag: "DELEGATE", effect: "DEESCALATE",
+          good: ["driver","can you help","assist"], bad: [] },
+        { label: "Support + de-escalate: “We’re just riding; let them be.”", tag: "DEESC", effect: "DEESCALATE",
           good: ["let them be","we're just riding"], bad: [] },
-        { label: "Delegate: “Driver, we need help here.”",         tag: "DELEGATE",
-          good: ["driver","help"], bad: [] }
+        { label: "Lecture / label them (don’t): “People like you are the problem.”", tag: "LECTURE", effect: "ESCALATE",
+          good: [], bad: ["people like you","you are the problem","learn to","shut"] }
       ],
-      branches: {
-        STRONG:   { react: "Fine.",       outcome: "cooling" },
-        NEUTRAL:  { react: "Whatever.",   outcome: "stall"   },
-        ESCALATE: { react: "Back off!",   outcome: "escalate"}
+      replies: {
+        STRONG:   ["Fine.", "Whatever…", "Alright."],
+        NEUTRAL:  ["Tch.", "Hmph.", "Okay?"],
+        ESCALATE: ["Back off!", "You think you’re better?", "Keep talking."]
       }
     },
     {
-      name: 'Round 3 — Exit/support',
-      npc_line: "Tch.",
+      name: 'Round 3 — Exit or support target',
+      npc_line: "Tss.",
       options: [
-        { label: "Support target: “We’re here—want to sit up front?”", tag: "SUPPORT",
-          good: ["we're here","want to sit","need a seat"], bad: [] },
-        { label: "Move group: “Let’s grab those seats over there.”", tag: "MOVE",
-          good: ["over there","grab seats"], bad: [] },
-        { label: "Reset: “Let’s give space.”", tag: "RESET",
-          good: ["give space"], bad: [] }
+        { label: "Move group: “Let’s grab those seats over there.”", tag: "MOVE", effect: "DEESCALATE",
+          good: ["over there","grab seats","sit over there"], bad: [] },
+        { label: "Check on target & relocate: “Are you okay if we move seats?”", tag: "SUPPORT", effect: "DEESCALATE",
+          good: ["are you okay","move seats","we're here"], bad: [] },
+        { label: "Keep arguing (don’t): “Say that again and see what happens.”", tag: "THREAT", effect: "ESCALATE",
+          good: [], bad: ["see what happens","or else","fight","hit","punch"] }
       ],
-      branches: {
-        STRONG:   { react: "…Okay.", outcome: "cooling" },
-        NEUTRAL:  { react: "Tss.",   outcome: "stall"   },
-        ESCALATE: { react: "Huh.",   outcome: "stall"   }
+      replies: {
+        STRONG:   ["…Okay.", "Whatever.", "Fine."],
+        NEUTRAL:  ["Tch.", "Huh.", "…"],
+        ESCALATE: ["You asking for it?", "Try me.", "Step closer then."]
       }
     },
-    // Aftercare (Delay)
     {
-      name: 'Aftercare — Check on the person',
-      npc_line: "(Aggressor is quiet; check in with the person.)",
+      name: 'Delay — Aftercare (check on the person)',
+      npc_line: "(Aggressor is quiet; check on the person.)",
       options: [
-        { label: "“Are you alright?”",                tag: "AFTERCARE", good: ["are you alright","are you okay"], bad: [] },
-        { label: "“Want me to stay with you?”",      tag: "AFTERCARE", good: ["stay with you","stay"], bad: [] },
-        { label: "“Prefer to move seats?”",          tag: "AFTERCARE", good: ["move seats"], bad: [] }
+        { label: "“Are you alright?”",             tag: "AFTERCARE", effect: "DEESCALATE", good: ["are you alright","are you okay"], bad: [] },
+        { label: "“Want me to stay with you?””",   tag: "AFTERCARE", effect: "DEESCALATE", good: ["stay with you","stay"], bad: [] },
+        { label: "“Prefer to move seats?”",        tag: "AFTERCARE", effect: "DEESCALATE", good: ["move seats"], bad: [] }
       ],
-      branches: {
-        STRONG:   { react: "Thank you.", outcome: "cooling" },
-        NEUTRAL:  { react: "Okay.",      outcome: "cooling" },
-        ESCALATE: { react: "—",          outcome: "cooling" }
+      replies: {
+        STRONG:   ["Thank you.", "I appreciate it.", "Thanks."],
+        NEUTRAL:  ["Okay.", "Yeah.", "Mm."],
+        ESCALATE: ["—"]
       }
     }
   ],
-  tips: [
-    "One short sentence beats a speech.",
-    "Address behavior, not identity.",
-    "Keep volume steady; avoid insults.",
-    "If unsafe, prefer Delegating/Moving."
+  // Backup lexicons for voice classification
+  GOOD_GLOBAL: [
+    "that's not okay","please stop","not okay","stop","driver","help","assist",
+    "let them be","we're just riding","over there","move seats","are you okay","are you alright","we're here"
+  ],
+  BAD_GLOBAL: [
+    "shut up","idiot","stupid","moron","freak","people like you","fight","hit","punch","see what happens","or else","loser"
   ]
 };
 
-// ---------- State ----------
+// -------- State --------
 const S = {
   round: 0,
-  mood: 0,                // -3 hostile … +3 calm
+  mood: 0,                 // -3 hostile … +3 calm
   lastTone: 'ASSERTIVE',
   lastText: '',
   path: [],
   mic: { stream:null, ctx:null, analyser:null, buf:null }
 };
 
-// ---------- DOM / A-Frame refs ----------
-const $ = (s)=>document.querySelector(s);
+// -------- DOM / A-Frame refs --------
+const $ = s => document.querySelector(s);
 const subtitle = $('#subtitle');
 const youSaid  = $('#youSaid');
-const feedbackCard = $('#feedbackCard');
+const uiPanel  = $('#uiPanel');
+const feedback = $('#feedbackCard');
 const cardTitle = $('#cardTitle');
 const cardBody  = $('#cardBody');
 
-const micPermissionBtn = $('#micPermission');
+const micBtn = $('#micPermission');
+const speakBtn = $('#speakNow');
 const micStatus = $('#micStatus');
-const speakBtn2D = document.createElement('button'); // simple desktop helper if wanted
 
 const npcAgg = $('#npcAggressor');
 const npcDrv = $('#npcDriver');
@@ -109,13 +111,11 @@ const hoverDot = $('#hoverDot');
 const opt1 = $('#opt1'), opt2 = $('#opt2'), opt3 = $('#opt3');
 const opt1text = $('#opt1text'), opt2text = $('#opt2text'), opt3text = $('#opt3text');
 
-// ========= NPC expression helpers (RobotExpressive) =========
-let aggMesh = null, aggMorphDict = null, aggMorph = null; // morph target control
-
+// ======== RobotExpressive morph targets (facial expressions) ========
+let aggMesh = null, aggMorphDict = null, aggMorph = null;
 npcAgg.addEventListener('model-loaded', () => {
   const mesh = npcAgg.getObject3D('mesh');
   if (!mesh) return;
-  // Walk the tree to find a skinned mesh with morphTargets
   mesh.traverse(node => {
     if (node.morphTargetInfluences && node.morphTargetDictionary) {
       aggMesh = node;
@@ -123,54 +123,58 @@ npcAgg.addEventListener('model-loaded', () => {
       aggMorph = node.morphTargetInfluences;
     }
   });
-  setAggExpression('angry', 0.9); // start tense
+  // start slightly tense
+  setAggExpression('angry', 0.8);
 });
 
-// map emotions -> try to find a matching morph target by (case-insensitive) name
+// Safely set facial expression, fallback to neutral if morph not found
 function setAggExpression(kind='neutral', strength=0.7) {
-  if (!aggMesh || !aggMorphDict || !aggMorph) return;
+  if (!aggMesh || !aggMorphDict || !aggMorph) return; // safe no-op
+  for (let i=0;i<aggMorph.length;i++) aggMorph[i]=0;  // zero all
 
-  // zero all first
-  for (let i=0;i<aggMorph.length;i++) aggMorph[i]=0;
-
-  const find = (needleArr)=>{
+  const find = (needles)=>{
     const names = Object.keys(aggMorphDict);
     for (const n of names) {
       const low = n.toLowerCase();
-      for (const k of needleArr) if (low.includes(k)) return aggMorphDict[n];
+      if (needles.some(k => low.includes(k))) return aggMorphDict[n];
     }
     return null;
   };
 
   let key = null;
-  if (kind==='angry')    key = find(['angry','frown','mad']);
-  else if (kind==='happy')   key = find(['happy','smile']);
-  else if (kind==='sad')     key = find(['sad']);
+  if (kind==='angry')      key = find(['angry','frown','mad']);
+  else if (kind==='happy') key = find(['happy','smile']);
+  else if (kind==='sad')   key = find(['sad']);
   else if (kind==='surprised') key = find(['surpris','shock']);
-  else if (kind==='neutral')   key = null;
+  else key = null;
 
   if (key!=null) aggMorph[key] = strength;
 }
 
-// quick gesture via rotation animation-mixer fallback
-function playAggClip(name, dur=1000){
-  // RobotExpressive has clips like Idle/Walk/Run/Jump/Yes/No/Wave/Dance (varies by version)
+function playAggClip(name, dur=900){
+  // if the clip doesn't exist, fallback to manual head/arm anims
   npcAgg.setAttribute('animation-mixer', `clip: ${name}; loop: once; clampWhenFinished: true`);
-  setTimeout(()=> npcAgg.setAttribute('animation-mixer', 'clip: Idle; loop: repeat'), dur+200);
+  // lightweight manual fallback gesture:
+  if (name === 'No') {
+    npcAgg.setAttribute('animation__shake', 'property: rotation; to: 0 175 0; dir: alternate; dur: 120; loop: 3; easing: easeOutQuad');
+    setTimeout(()=> npcAgg.removeAttribute('animation__shake'), dur);
+  } else if (name === 'Yes') {
+    npcAgg.setAttribute('animation__nod', 'property: rotation; to: -6 165 0; dir: alternate; dur: 140; loop: 3; easing: easeInOutQuad');
+    setTimeout(()=> npcAgg.removeAttribute('animation__nod'), dur);
+  }
+  setTimeout(()=> npcAgg.setAttribute('animation-mixer', 'clip: Idle; loop: repeat'), dur+150);
 }
 
-// move NPC a bit (closer/farther)
-function moveAggTo(z = -1.6, dur=600){
-  npcAgg.setAttribute('animation__move', `property: position; to: 0 0 ${z}; dur: ${dur}; easing: easeOutQuad`);
+function moveAggTo(x=-0.8, z=-2.2, dur=400){
+  npcAgg.setAttribute('animation__move', `property: position; to: ${x} 0 ${z}; dur:${dur}; easing:easeOutQuad`);
 }
 
-// Driver brief “speak” gesture
-function driverConcern(){
-  npcDrv.setAttribute('animation__nod', 'property: rotation; to: -6 150 0; dir: alternate; dur: 160; loop: 4; easing: easeInOutQuad');
-  setTimeout(()=> npcDrv.removeAttribute('animation__nod'), 900);
+function driverGlance(){
+  npcDrv.setAttribute('animation__glance', 'property: rotation; to: -6 150 0; dir: alternate; dur: 140; loop: 4; easing: easeInOutQuad');
+  setTimeout(()=> npcDrv.removeAttribute('animation__glance'), 900);
 }
 
-// ---------- Mic & tone ----------
+// -------- Mic / tone --------
 async function enableMic(){
   if (S.mic.stream) return true;
   try{
@@ -179,21 +183,23 @@ async function enableMic(){
     const src = ctx.createMediaStreamSource(stream);
     const analyser = ctx.createAnalyser(); analyser.fftSize = 2048;
     src.connect(analyser);
-    S.mic = { stream, ctx, analyser, buf: new Float32Array(analyser.fftSize) };
+    S.mic = { stream, ctx, analyser, buf:new Float32Array(analyser.fftSize) };
     micStatus.textContent = 'Microphone: Enabled';
+    speakBtn.disabled = false;
     return true;
   }catch(e){
     micStatus.textContent = 'Microphone: Access Denied';
+    speakBtn.disabled = true;
     return false;
   }
 }
 
 function measureTone(ms=1000){
   return new Promise(res=>{
-    if (!S.mic.analyser){ res({bucket:'ASSERTIVE'}); return; }
+    if (!S.mic.analyser) return res({bucket:'ASSERTIVE'});
     const {analyser, buf} = S.mic;
-    const t0 = performance.now();
     let frames=0, sumAbs=0, pace=0, prev=0;
+    const t0 = performance.now();
     (function loop(){
       analyser.getFloatTimeDomainData(buf);
       let abs=0;
@@ -201,7 +207,7 @@ function measureTone(ms=1000){
       sumAbs += abs/buf.length; frames++;
       if (performance.now()-t0 < ms) requestAnimationFrame(loop);
       else {
-        const rms = (sumAbs/frames)||0, paceNorm = pace/(frames*buf.length);
+        const rms=(sumAbs/frames)||0, paceNorm=pace/(frames*buf.length);
         let bucket='CALM'; if (rms>0.6 || paceNorm>0.008) bucket='AGGRESSIVE'; else if (rms>=0.25) bucket='ASSERTIVE';
         res({bucket});
       }
@@ -209,86 +215,104 @@ function measureTone(ms=1000){
   });
 }
 
-// optional desktop STT (Quest often lacks it)
+// Optional STT (desktop). On Quest, STT is often unavailable—buttons still demo well.
 function runSTT(timeoutMs=1400){
   return new Promise(resolve=>{
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR){ resolve(''); return; }
+    if (!SR) return resolve('');
     const r = new SR(); r.lang='en-US'; r.interimResults=false; r.maxAlternatives=1;
-    let done=false; const t = setTimeout(()=>{ if(!done){done=true; r.stop(); resolve(''); } }, timeoutMs+400);
+    let done=false; const t=setTimeout(()=>{ if(!done){done=true; r.stop(); resolve('');} }, timeoutMs+400);
     r.onresult = e=>{ if(done) return; done=true; clearTimeout(t); resolve(e.results[0][0].transcript||''); };
-    r.onerror = ()=>{ if(!done){done=true; clearTimeout(t); resolve(''); } };
-    r.onend   = ()=>{ if(!done){done=true; clearTimeout(t); resolve(''); } };
+    r.onerror  = ()=>{ if(!done){done=true; clearTimeout(t); resolve('');} };
+    r.onend    = ()=>{ if(!done){done=true; clearTimeout(t); resolve('');} };
     r.start(); setTimeout(()=> r.stop(), timeoutMs);
   });
 }
 
-// ---------- Scoring, mood, and reactions ----------
-function score(turn, text, tone){
-  const t = (text||'').toLowerCase();
-  const hasGood = turn.options.some(o => (o.good||[]).some(k => t.includes(k)));
-  const hasBad  = turn.options.some(o => (o.bad ||[]).some(k => t.includes(k)));
-  if (hasGood && tone!=='AGGRESSIVE') return 'STRONG';
-  if (hasBad  || tone==='AGGRESSIVE') return 'ESCALATE';
+// -------- Scoring + mood + reaction lines --------
+function classifyVoice(text){
+  const T = (text||'').toLowerCase();
+  const good = SCENARIO.GOOD_GLOBAL.some(k => T.includes(k));
+  const bad  = SCENARIO.BAD_GLOBAL.some(k => T.includes(k));
+  if (good && !bad) return 'DEESCALATE';
+  if (bad && !good) return 'ESCALATE';
   return 'NEUTRAL';
 }
-function adjustMood(branch){
-  if (branch==='STRONG') S.mood = Math.min(3, S.mood+1);
-  if (branch==='ESCALATE') S.mood = Math.max(-3, S.mood-1);
-  // visuals:
-  if (S.mood<=-1){ setAggExpression('angry', 0.9); moveAggTo(-1.25, 300); }
-  else if (S.mood>=2){ setAggExpression('happy', 0.6); moveAggTo(-1.9, 400); }
-  else { setAggExpression('neutral', 0.0); moveAggTo(-1.6, 300); }
+
+function score(turn, text, tone, chosenEffect=null){
+  // If user clicked an option, that carries an intended effect; tone can upgrade/downgrade.
+  let effect = chosenEffect || classifyVoice(text);
+
+  // Tone influences:
+  if (tone === 'AGGRESSIVE') effect = 'ESCALATE';
+  else if (tone === 'CALM' && effect === 'NEUTRAL') effect = 'DEESCALATE';
+
+  // Map effect -> branch
+  if (effect === 'DEESCALATE') return 'STRONG';
+  if (effect === 'ESCALATE')   return 'ESCALATE';
+  return 'NEUTRAL';
 }
 
+function pickReply(round, branchKey){
+  const list = SCENARIO.rounds[round].replies[branchKey] || ["…"];
+  return list[Math.floor(Math.random()*list.length)];
+}
+
+function adjustMood(branchKey){
+  if (branchKey==='STRONG') S.mood = Math.min(3, S.mood+1);
+  if (branchKey==='ESCALATE') S.mood = Math.max(-3, S.mood-1);
+
+  if (S.mood<=-1){ setAggExpression('angry', 1.0); moveAggTo(-0.6, -1.6, 260); }
+  else if (S.mood>=2){ setAggExpression('happy', 0.6); moveAggTo(-0.9, -2.6, 300); }
+  else { setAggExpression('neutral', 0.0); moveAggTo(-0.8, -2.2, 280); }
+}
+
+function reactBranch(branchKey){
+  if (branchKey==='ESCALATE'){ playAggClip('No', 900); driverGlance(); }
+  if (branchKey==='STRONG'){   playAggClip('Yes', 900); }
+  if (branchKey==='NEUTRAL'){  /* tiny shrug via rotation */ npcAgg.setAttribute('animation__shrug','property: rotation; to: 0 170 0; dir: alternate; dur: 220; loop: 2; easing: easeInOutQuad'); setTimeout(()=> npcAgg.removeAttribute('animation__shrug'), 600); }
+}
+
+// -------- UI helpers --------
 function setSubtitle(v){ subtitle.setAttribute('text','value', v); }
 function setYou(v){ youSaid.setAttribute('text','value', v? `You: ${v}` : ''); }
 
 function labelOptions(round){
-  const [o1,o2,o3] = round.options;
+  const [o1,o2,o3] = SCENARIO.rounds[round].options;
   opt1text.setAttribute('text','value', o1.label);
   opt2text.setAttribute('text','value', o2.label);
   opt3text.setAttribute('text','value', o3.label);
 }
 
-// ---------- Flow ----------
+// -------- Flow --------
 function showRound(){
-  const round = SCENARIO.rounds[S.round];
-  setSubtitle(`${round.name}\n${round.npc_line}`);
+  const r = SCENARIO.rounds[S.round];
+  setSubtitle(`${r.name}\n${r.npc_line}`);
   setYou('');
-  labelOptions(round);
+  labelOptions(S.round);
 
-  // Actor behavior cue
-  if (S.round===0){
-    setAggExpression('angry', 0.9); playAggClip('No', 900); moveAggTo(-1.25, 400); driverConcern();
-  } else if (S.round===1){
-    playAggClip('Idle', 600);
-  } else if (S.round===2){
-    playAggClip('Yes', 600);
-  } else {
-    // aftercare: calm
-    setAggExpression('happy', 0.5); playAggClip('Wave', 1000); moveAggTo(-1.9, 600);
-  }
+  // opening behaviors
+  if (S.round===0){ setAggExpression('angry', 0.8); moveAggTo(-0.6,-1.8,300); driverGlance(); }
+  if (S.round===1){ moveAggTo(-0.7,-2.0,300); }
+  if (S.round===2){ moveAggTo(-0.8,-2.2,300); }
+  if (S.round===3){ setAggExpression('happy', 0.5); moveAggTo(-0.95,-2.6,300); }
 }
 
-// apply response (either from button or voice)
-function applyResponse(text, chosenTag){
-  const round = SCENARIO.rounds[S.round];
+function applyResponse({text='', chosenTag='', chosenEffect=null}){
+  const roundData = SCENARIO.rounds[S.round];
   const tone = S.mic.stream ? S.lastTone : 'ASSERTIVE';
-  const branch = score(round, text || chosenTag || '', tone);
-  const react = round.branches[branch];
+
+  const branchKey = score(roundData, text || chosenTag, tone, chosenEffect);
+  const npcLine = pickReply(S.round, branchKey);
+
   setYou(text ? `${text}  (${tone})` : `${chosenTag}  (${tone})`);
+  setSubtitle(npcLine);
 
-  // Aggressor reaction
-  if (branch==='ESCALATE'){ playAggClip('No', 900); setAggExpression('angry', 1.0); moveAggTo(-1.1, 300); }
-  if (branch==='STRONG'){   playAggClip('Yes', 900); setAggExpression('neutral', 0.0); moveAggTo(-1.8, 400); }
-  if (branch==='NEUTRAL'){  setAggExpression('neutral', 0.1); }
+  S.path.push({ round:S.round, branch:branchKey, tone, text:text||chosenTag });
+  adjustMood(branchKey);
+  reactBranch(branchKey);
 
-  setSubtitle(react.react);
-  S.path.push({ round:S.round, branch, outcome:react.outcome, tone, text:text||chosenTag||'' });
-  adjustMood(branch);
-
-  const wait = 900 + (S.mood<0 ? 500 : 200);
+  const wait = 950 + (S.mood<0 ? 400 : 150);
   setTimeout(()=>{
     if (S.round >= SCENARIO.rounds.length - 1) endGame();
     else { S.round++; showRound(); }
@@ -296,16 +320,16 @@ function applyResponse(text, chosenTag){
 }
 
 function endGame(){
-  const win = S.path.some(p=>p.outcome==='cooling');
-  const title = win ? '✅ You cooled it down.' : '⚠️ Let’s improve that boundary.';
+  const win = S.path.some(p=>p.branch==='STRONG'); // any cooling move counts
   const last = S.path[S.path.length-1] || {};
-  const good  = win ? 'What worked:\n• Short, clear boundary.\n• No labels/insults.\n• Steady tone.'
-                    : 'Try this:\n• One sentence boundary.\n• Behavior, not identity.\n• Lower volume; slow pace.';
-  const better = '“That’s not okay. Please stop.”\n“We’re just riding; let them be.”';
+  const title = win ? '✅ You cooled it down.' : '⚠️ Try a calmer, shorter boundary.';
+  const good  = win ? 'What worked:\n• Clear boundary or useful delegation.\n• No labels/insults.\n• Steady tone.' :
+                      'Try this:\n• 1 short sentence about behavior.\n• Avoid labels/insults.\n• Lower volume; slow pace.';
+  const better = '“That’s not okay. Please stop.”\n“We’re just riding; let them be.”\n“Driver, could you help here?”';
 
-  $('#uiPanel').setAttribute('visible','false');
-  feedbackCard.setAttribute('visible', true);
-  feedbackCard.setAttribute('animation__in','property: scale; from: 0 0 0; to: 1 1 1; dur: 600; easing: easeOutBack');
+  uiPanel.setAttribute('visible','false');
+  feedback.setAttribute('visible', true);
+  feedback.setAttribute('animation__in','property: scale; from: 0 0 0; to: 1 1 1; dur: 600; easing: easeOutBack');
 
   cardTitle.setAttribute('text','value', title);
   cardBody.setAttribute('text','value',
@@ -313,18 +337,17 @@ function endGame(){
 }
 
 function resetAll(){
-  S.round = 0; S.mood = 0; S.lastTone='ASSERTIVE'; S.lastText=''; S.path=[];
-  $('#uiPanel').setAttribute('visible','true');
-  feedbackCard.setAttribute('visible', false);
-  feedbackCard.removeAttribute('animation__in');
+  S.round=0; S.mood=0; S.lastTone='ASSERTIVE'; S.lastText=''; S.path=[];
+  uiPanel.setAttribute('visible','true');
+  feedback.setAttribute('visible', false);
+  feedback.removeAttribute('animation__in');
   showRound();
 }
 
-// ---------- Click binding ----------
+// -------- Bind clicks + hover feedback --------
 function bindClickable(el, handler){
   el.classList.add('clickable');
   el.addEventListener('click', handler);
-  // show hover dot when ray hits this el
   ['#rightHand','#leftHand'].forEach(sel=>{
     const rc = document.querySelector(sel);
     rc.addEventListener('raycaster-intersection', e=>{
@@ -336,64 +359,56 @@ function bindClickable(el, handler){
     rc.addEventListener('raycaster-intersection-cleared', ()=> hoverDot.setAttribute('visible','false'));
   });
 }
+
+// Button handlers (context-aware)
 bindClickable(opt1, ()=> {
-  const lbl = opt1text.getAttribute('text').value;
-  const tag = SCENARIO.rounds[S.round].options[0].tag;
-  applyResponse(lbl, tag);
+  const opt = SCENARIO.rounds[S.round].options[0];
+  applyResponse({ text: opt.label.replace(/^.*?:\s*/,'').replace(/^“|”$/g,''), chosenTag: opt.tag, chosenEffect: opt.effect });
 });
 bindClickable(opt2, ()=> {
-  const lbl = opt2text.getAttribute('text').value;
-  const tag = SCENARIO.rounds[S.round].options[1].tag;
-  applyResponse(lbl, tag);
+  const opt = SCENARIO.rounds[S.round].options[1];
+  applyResponse({ text: opt.label.replace(/^.*?:\s*/,'').replace(/^“|”$/g,''), chosenTag: opt.tag, chosenEffect: opt.effect });
 });
 bindClickable(opt3, ()=> {
-  const lbl = opt3text.getAttribute('text').value;
-  const tag = SCENARIO.rounds[S.round].options[2].tag;
-  applyResponse(lbl, tag);
+  const opt = SCENARIO.rounds[S.round].options[2];
+  applyResponse({ text: opt.label.replace(/^.*?:\s*/,'').replace(/^“|”$/g,''), chosenTag: opt.tag, chosenEffect: opt.effect });
 });
+
+// Card buttons
 bindClickable($('#btnReplay'), resetAll);
 bindClickable($('#btnSave'), exportCardPNG);
 
-// ---------- Mic UI ----------
-micPermissionBtn.addEventListener('click', async ()=>{
+// -------- Mic UI --------
+micBtn.addEventListener('click', async ()=>{
   const ok = await enableMic();
-  if (ok){
-    micPermissionBtn.textContent = 'Mic Enabled';
-    micPermissionBtn.style.background = 'rgba(0, 200, 100, .95)';
-  }
+  if (ok){ micBtn.textContent='Mic Enabled'; micBtn.style.background='#0e7a3f'; }
 });
-
-// Optional: bind “Speak Now” on desktop by pressing “S”
-window.addEventListener('keydown', async (e)=>{
-  if (e.key.toLowerCase()==='s'){
-    await doSpeakFlow();
-  }
-});
-
-async function doSpeakFlow(){
+speakBtn.addEventListener('click', async ()=>{
   const ok = await enableMic(); if (!ok) return;
+  speakBtn.textContent = 'Listening…'; speakBtn.disabled = true;
   const {bucket} = await measureTone(1000);
   S.lastTone = bucket;
-  // try STT (desktop). On Quest, STT likely unavailable—user can just pick a button.
-  const text = await runSTT(1400);
-  if (!text){ setYou(`(Voice tone: ${S.lastTone}). Pick an option or say a short line.`); return; }
-  applyResponse(text, 'VOICE');
-}
+  // Try STT (desktop). On Quest, STT often unavailable — still use tone.
+  let text = await runSTT(1400);
+  speakBtn.textContent = 'Speak Now (1s)'; speakBtn.disabled = false;
 
-// ---------- Feedback PNG export ----------
+  if (!text){
+    setYou(`(Voice tone: ${S.lastTone}). Pick an option or say one short line.`);
+    return;
+  }
+  applyResponse({ text, chosenTag:'VOICE', chosenEffect: null });
+});
+
+// -------- Save feedback as PNG --------
 function exportCardPNG(){
   const cnv = $('#exportCanvas'), ctx = cnv.getContext('2d');
   const pad=20, w=cnv.width, h=cnv.height;
-  // bg
   ctx.fillStyle='#00152b'; ctx.fillRect(0,0,w,h);
-  // title
-  const title = cardTitle.getAttribute('text').value;
-  const body  = cardBody.getAttribute('text').value;
+  const title = $('#cardTitle').getAttribute('text').value;
+  const body  = $('#cardBody').getAttribute('text').value;
   ctx.fillStyle='#a7f3d0'; ctx.font='bold 24px system-ui, Segoe UI, Roboto'; ctx.fillText(title, pad, pad+26);
-  // body (wrap)
   ctx.fillStyle='#e7edf7'; ctx.font='16px system-ui, Segoe UI, Roboto';
-  wrap(ctx, body, w - pad*2).forEach((line,i)=> ctx.fillText(line, pad, pad+70 + i*22));
-  // dl
+  wrap(ctx, body, w-pad*2).forEach((line,i)=> ctx.fillText(line, pad, pad+70 + i*22));
   const a=document.createElement('a'); a.href=cnv.toDataURL('image/png'); a.download='bystander_coach_card.png'; a.click();
 }
 function wrap(ctx, text, width){
@@ -402,9 +417,9 @@ function wrap(ctx, text, width){
   if (line) lines.push(line); return lines;
 }
 
-// ---------- Init ----------
+// -------- Init --------
 document.addEventListener('DOMContentLoaded', ()=>{
-  setTimeout(()=> { $('#loadingScreen').style.display='none'; showRound(); }, 900);
+  setTimeout(()=> { $('#loadingScreen').style.display='none'; showRound(); }, 700);
 });
 
-// ============== END ==============
+// ===============================

@@ -6,136 +6,140 @@
     name="viewport"
     content="width=device-width, initial-scale=1.0, viewport-fit=cover"
   />
-  <title>Bystander Coach — VR (Expressive NPC)</title>
+  <title>Bystander Coach — VR (Reactive NPC)</title>
 
   <!-- A-Frame core -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <!-- Animation mixer for glTF clips -->
+  <!-- Extras: animation mixer + nav helpers -->
   <script src="https://cdn.jsdelivr.net/gh/n5ro/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
-  <!-- Look-at helper so NPCs track the camera a bit -->
+  <!-- Look-at so NPC tracks the camera a bit -->
   <script src="https://cdn.jsdelivr.net/npm/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
-  <!-- Optional speech API polyfill for desktop -->
+  <!-- (Optional) STT polyfill for desktop; Quest usually lacks STT -->
   <script src="https://cdn.jsdelivr.net/npm/speech-recognition-polyfill@0.1.4/dist/speech-recognition.min.js"></script>
 
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- 2D HUD -->
+  <!-- HUD -->
   <div id="loadingScreen">
     <div>Loading Bystander Coach</div>
     <div class="pulse">Please wait…</div>
   </div>
 
-  <canvas id="exportCanvas" width="880" height="560"></canvas>
-
-  <button id="micPermission">Enable Microphone</button>
-  <div id="micStatus">Microphone: Disabled</div>
-  <div id="hint">
-    Quest: point with controller ray & pull trigger. Desktop: drag to look, WASD to move.
-    Use <b>Enable Microphone</b> then <b>Speak</b> (or choose one of the three options).
+  <div class="hud-left">
+    <button id="micPermission" class="btn2d">Enable Microphone</button>
+    <button id="speakNow" class="btn2d" disabled>Speak Now (1s)</button>
+    <div id="micStatus" class="status">Microphone: Disabled</div>
   </div>
+
+  <div id="hint" class="hud-top">
+    Quest: point with controller ray & pull trigger. Desktop: drag to look, WASD to move.<br/>
+    Voice: <b>Enable Microphone</b> → <b>Speak Now</b>. Otherwise, choose an on-panel option.
+  </div>
+
+  <!-- Offscreen canvas for saving feedback card as PNG -->
+  <canvas id="exportCanvas" width="880" height="560"></canvas>
 
   <a-scene
     background="color: #0b0f17"
     webxr="requiredFeatures: local-floor; optionalFeatures: hand-tracking"
-    vr-mode-ui="enabled: true"
     loading-screen="enabled: false"
+    vr-mode-ui="enabled: true"
   >
-    <!-- Camera rig + gaze cursor + controller rays -->
+    <!-- Camera rig + cursor + controller rays -->
     <a-entity id="rig" position="0 1.6 2.2">
       <a-entity id="camera" camera look-controls wasd-controls="acceleration: 10">
         <a-entity
           id="gazeCursor"
           cursor="fuse:false"
           position="0 0 -1"
-          geometry="primitive:ring; radiusInner:0.01; radiusOuter:0.015"
-          material="color:#e2e8f0; shader:flat; opacity:.85"
-          raycaster="objects:.clickable"
+          geometry="primitive: ring; radiusInner: 0.01; radiusOuter: 0.015"
+          material="color: #e2e8f0; shader: flat; opacity: .85"
+          raycaster="objects: .clickable"
         ></a-entity>
       </a-entity>
-
-      <a-entity id="rightHand" laser-controls="hand: right" raycaster="objects: .clickable; far: 8;"></a-entity>
-      <a-entity id="leftHand"  laser-controls="hand: left"  raycaster="objects: .clickable; far: 8;"></a-entity>
+      <a-entity id="rightHand" laser-controls="hand: right" raycaster="objects: .clickable; far: 9;"></a-entity>
+      <a-entity id="leftHand"  laser-controls="hand: left"  raycaster="objects: .clickable; far: 9;"></a-entity>
     </a-entity>
 
-    <!-- Lights + simple “bus” floor -->
-    <a-entity light="type: hemisphere; color: #ffffff; groundColor: #223; intensity: 1.0"></a-entity>
-    <a-entity geometry="primitive: plane; width: 30; height: 30" rotation="-90 0 0"
+    <!-- Lighting + floor -->
+    <a-entity light="type: hemisphere; color: #fff; groundColor: #223; intensity: 1.0"></a-entity>
+    <a-entity geometry="primitive: plane; width: 36; height: 36" rotation="-90 0 0"
               material="color: #101827; roughness: 1"></a-entity>
 
-    <!-- NPCs (externally sourced models) -->
-    <!-- Expressive aggressor (RobotExpressive: has blendshapes + clips) -->
+    <!-- NPCs (expressive aggressor + driver/authority) -->
+    <!-- Move aggressor LEFT and farther so it never overlaps the UI panel -->
     <a-entity id="npcAggressor"
       gltf-model="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/RobotExpressive/glTF-Binary/RobotExpressive.glb"
-      position="0 0 -1.6" rotation="0 180 0" scale="0.75 0.75 0.75"
+      position="-0.8 0 -2.2" rotation="0 165 0" scale="0.78 0.78 0.78"
       animation-mixer="clip: Idle; loop: repeat"
       look-at="#camera">
     </a-entity>
 
-    <!-- Driver / authority (CesiumMan: neutral human stand-in) -->
+    <!-- Driver stands to the RIGHT, farther back -->
     <a-entity id="npcDriver"
       gltf-model="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CesiumMan/glTF-Binary/CesiumMan.glb"
-      position="-1.6 0 -2.6" rotation="0 150 0" scale="0.9 0.9 0.9"
+      position="1.4 0 -3.0" rotation="0 150 0" scale="0.95 0.95 0.95"
       animation-mixer="clip: idle; loop: repeat"
       look-at="#camera">
     </a-entity>
 
-    <!-- Hover dot (ray hits) -->
+    <!-- Hover dot for ray hits -->
     <a-entity id="hoverDot" geometry="primitive: sphere; radius: 0.01"
-              material="color:#93c5fd" visible="false"></a-entity>
+              material="color: #93c5fd" visible="false"></a-entity>
 
-    <!-- Panel with dynamic subtitle + options -->
-    <a-entity id="uiPanel" position="0 1.1 -1.0" rotation="0 0 0">
-      <a-entity id="panelBg" geometry="primitive: plane; width: 1.38; height: 0.88"
-                material="color: #071426; opacity: .95; side: double"></a-entity>
+    <!-- UI Panel (centered in front) -->
+    <a-entity id="uiPanel" position="0 1.12 -1.1">
+      <a-entity geometry="primitive: plane; width: 1.44; height: 0.92"
+                material="color: #071426; opacity: .96; side: double"></a-entity>
 
-      <a-entity id="subtitle" position="-0.64 0.30 0.01"
-                text="value: ; color:#e7edf7; width:1.25; wrapCount: 38; align: left"></a-entity>
-      <a-entity id="youSaid" position="-0.64 0.15 0.01"
-                text="value: ; color:#9fb6d1; width:1.25; wrapCount: 38; align: left"></a-entity>
+      <a-entity id="subtitle" position="-0.68 0.30 0.01"
+                text="value: ; color: #e7edf7; width: 1.32; wrapCount: 40; align: left"></a-entity>
+      <a-entity id="youSaid" position="-0.68 0.15 0.01"
+                text="value: ; color: #9fb6d1; width: 1.32; wrapCount: 40; align: left"></a-entity>
 
-      <!-- Three context-specific options (labels change every round) -->
+      <!-- Three round-specific options (content changes each round) -->
       <a-entity id="opt1" class="clickable option"
-                geometry="primitive: plane; width: 1.25; height: 0.12"
-                position="0 -0.02 0.01" material="color: #0d203a">
-        <a-entity id="opt1text" position="-0.60 0 0"
-          text="value: ; color:#e5efff; width: 1.15; wrapCount: 36; align: left"></a-entity>
+                geometry="primitive: plane; width: 1.32; height: 0.12"
+                position="0 -0.01 0.01" material="color: #0d203a">
+        <a-entity id="opt1text" position="-0.64 0 0"
+          text="value: ; color: #e5efff; width: 1.22; wrapCount: 38; align: left"></a-entity>
       </a-entity>
       <a-entity id="opt2" class="clickable option"
-                geometry="primitive: plane; width: 1.25; height: 0.12"
+                geometry="primitive: plane; width: 1.32; height: 0.12"
                 position="0 -0.20 0.01" material="color: #0c1b31">
-        <a-entity id="opt2text" position="-0.60 0 0"
-          text="value: ; color:#dbeafe; width: 1.15; wrapCount: 36; align: left"></a-entity>
+        <a-entity id="opt2text" position="-0.64 0 0"
+          text="value: ; color: #dbeafe; width: 1.22; wrapCount: 38; align: left"></a-entity>
       </a-entity>
       <a-entity id="opt3" class="clickable option"
-                geometry="primitive: plane; width: 1.25; height: 0.12"
-                position="0 -0.38 0.01" material="color: #0a1627">
-        <a-entity id="opt3text" position="-0.60 0 0"
-          text="value: ; color:#c7d2fe; width: 1.15; wrapCount: 36; align: left"></a-entity>
+                geometry="primitive: plane; width: 1.32; height: 0.12"
+                position="0 -0.39 0.01" material="color: #0a1627">
+        <a-entity id="opt3text" position="-0.64 0 0"
+          text="value: ; color: #c7d2fe; width: 1.22; wrapCount: 38; align: left"></a-entity>
       </a-entity>
     </a-entity>
 
     <!-- Feedback Card -->
-    <a-entity id="feedbackCard" visible="false" position="0 1.1 -0.9" scale="0 0 0">
-      <a-entity geometry="primitive: plane; width: 1.38; height: 0.88"
+    <a-entity id="feedbackCard" visible="false" position="0 1.12 -0.95" scale="0 0 0">
+      <a-entity geometry="primitive: plane; width: 1.44; height: 0.92"
                 material="color: #00152b; opacity: .98; side: double"></a-entity>
-      <a-entity id="cardTitle" position="-0.64 0.30 0.01"
-                text="value: ; color: #a7f3d0; width: 1.25; wrapCount: 38; align: left"></a-entity>
-      <a-entity id="cardBody" position="-0.64 0.10 0.01"
-                text="value: ; color: #e7edf7; width: 1.25; wrapCount: 38; align: left"></a-entity>
+      <a-entity id="cardTitle" position="-0.68 0.30 0.01"
+                text="value: ; color: #a7f3d0; width: 1.32; wrapCount: 40; align: left"></a-entity>
+      <a-entity id="cardBody" position="-0.68 0.10 0.01"
+                text="value: ; color: #e7edf7; width: 1.32; wrapCount: 40; align: left"></a-entity>
       <a-entity id="btnSave" class="clickable"
-                geometry="primitive: plane; width: 0.56; height: 0.12"
-                position="-0.30 -0.28 0.01" material="color: #0f2d4a">
-        <a-entity text="value: Save Card (PNG); color:#e0f2fe; width: 0.5; align: center"></a-entity>
+                geometry="primitive: plane; width: 0.58; height: 0.12"
+                position="-0.32 -0.30 0.01" material="color: #0f2d4a">
+        <a-entity text="value: Save Card (PNG); color:#e0f2fe; width: 0.52; align: center"></a-entity>
       </a-entity>
       <a-entity id="btnReplay" class="clickable"
-                geometry="primitive: plane; width: 0.56; height: 0.12"
-                position="0.30 -0.28 0.01" material="color: #0b2b33">
-        <a-entity text="value: Replay; color:#d1fae5; width: 0.5; align: center"></a-entity>
+                geometry="primitive: plane; width: 0.58; height: 0.12"
+                position="0.32 -0.30 0.01" material="color: #0b2b33">
+        <a-entity text="value: Replay; color:#d1fae5; width: 0.52; align: center"></a-entity>
       </a-entity>
     </a-entity>
 
-    <!-- Attach logic last -->
+    <!-- Logic -->
     <script src="script.js"></script>
   </a-scene>
 </body>
