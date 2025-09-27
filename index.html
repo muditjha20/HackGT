@@ -2,8 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Bystander Coach — VR (Reactive NPC)</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  />
+  <title>Bystander Coach — Gift Shop De-Escalation</title>
 
   <!-- A-Frame core -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
@@ -14,282 +17,19 @@
   <!-- (Optional) STT polyfill for desktop; Quest usually lacks STT -->
   <script src="https://cdn.jsdelivr.net/npm/speech-recognition-polyfill@0.1.4/dist/speech-recognition.min.js"></script>
 
-  <style>
-    /* Enhanced CSS with modern design */
-    body {
-      margin: 0;
-      overflow: hidden;
-      font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
-      background: linear-gradient(135deg, #0c1323 0%, #1a1f35 100%);
-    }
-
-    .hud-left {
-      position: absolute;
-      left: 16px;
-      bottom: 16px;
-      z-index: 1000;
-      display: grid;
-      gap: 12px;
-    }
-
-    .hud-top {
-      position: absolute;
-      top: 12px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 1000;
-      color: #e5e7eb;
-      background: rgba(15, 23, 42, 0.85);
-      padding: 12px 20px;
-      border-radius: 16px;
-      backdrop-filter: blur(8px);
-      text-align: center;
-      font-size: 15px;
-      border: 1px solid rgba(100, 130, 200, 0.2);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-      max-width: 80%;
-      line-height: 1.5;
-    }
-
-    .btn2d {
-      color: #f0f4ff;
-      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-      border: none;
-      border-radius: 12px;
-      padding: 12px 18px;
-      cursor: pointer;
-      font-size: 15px;
-      font-weight: 600;
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-    
-    .btn2d:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-      background: linear-gradient(135deg, #4a94ff 0%, #2563eb 100%);
-    }
-    
-    .btn2d:active:not(:disabled) {
-      transform: translateY(0);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    }
-    
-    .btn2d:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      background: linear-gradient(135deg, #64748b 0%, #475569 100%);
-    }
-
-    .status {
-      color: #d1d5db;
-      background: rgba(15, 23, 42, 0.7);
-      padding: 10px 14px;
-      border-radius: 10px;
-      font-size: 14px;
-      backdrop-filter: blur(4px);
-      border: 1px solid rgba(100, 130, 200, 0.1);
-    }
-
-    #loadingScreen {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, #0c1323 0%, #1a1f35 100%);
-      color: #e5e7eb;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      z-index: 2000;
-      font-size: 24px;
-      gap: 16px;
-    }
-    
-    .loading-icon {
-      width: 60px;
-      height: 60px;
-      border: 4px solid rgba(59, 130, 246, 0.3);
-      border-top: 4px solid #3b82f6;
-      border-radius: 50%;
-      animation: spin 1.2s linear infinite;
-    }
-    
-    .pulse { 
-      animation: pulse 1.6s infinite;
-      font-size: 18px;
-      color: #a5b4fc;
-    }
-    
-    @keyframes pulse { 
-      0% { opacity: 0.6; }
-      50% { opacity: 1; }
-      100% { opacity: 0.6; }
-    }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    #exportCanvas { display: none; }
-
-    /* Interactables */
-    .clickable { cursor: pointer; }
-    .option:hover { filter: brightness(1.15); }
-
-    /* Mood indicator */
-    .mood-indicator {
-      position: absolute;
-      top: 80px;
-      right: 16px;
-      z-index: 1000;
-      background: rgba(15, 23, 42, 0.7);
-      border-radius: 12px;
-      padding: 12px;
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(100, 130, 200, 0.2);
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-    }
-    
-    .mood-title {
-      color: #a5b4fc;
-      font-size: 14px;
-      margin-bottom: 8px;
-      text-align: center;
-    }
-    
-    .mood-bar {
-      width: 200px;
-      height: 12px;
-      background: rgba(100, 100, 120, 0.3);
-      border-radius: 6px;
-      overflow: hidden;
-      position: relative;
-    }
-    
-    .mood-fill {
-      height: 100%;
-      width: 50%;
-      border-radius: 6px;
-      transition: all 0.5s ease;
-      background: linear-gradient(90deg, #ef4444, #f59e0b, #10b981);
-    }
-    
-    .mood-labels {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 6px;
-      font-size: 12px;
-      color: #94a3b8;
-    }
-    
-    /* Progress indicator */
-    .progress-container {
-      position: absolute;
-      bottom: 16px;
-      right: 16px;
-      z-index: 1000;
-      background: rgba(15, 23, 42, 0.7);
-      border-radius: 12px;
-      padding: 12px;
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(100, 130, 200, 0.2);
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-    }
-    
-    .progress-title {
-      color: #a5b4fc;
-      font-size: 14px;
-      margin-bottom: 8px;
-      text-align: center;
-    }
-    
-    .progress-steps {
-      display: flex;
-      gap: 8px;
-    }
-    
-    .progress-step {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: #334155;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      color: #64748b;
-      transition: all 0.3s ease;
-    }
-    
-    .progress-step.active {
-      background: #3b82f6;
-      color: white;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
-    }
-    
-    .progress-step.completed {
-      background: #10b981;
-      color: white;
-    }
-    
-    /* Feedback accents */
-    .feedback-success { outline: 3px solid #10b981; }
-    .feedback-neutral { outline: 3px solid #f59e0b; }
-    .feedback-escalate { outline: 3px solid #ef4444; }
-  </style>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <!-- HUD -->
   <div id="loadingScreen">
-    <div class="loading-icon"></div>
     <div>Loading Bystander Coach</div>
     <div class="pulse">Please wait…</div>
   </div>
 
   <div class="hud-left">
-    <button id="micPermission" class="btn2d">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 15C13.6569 15 15 13.6569 15 12V5C15 3.34315 13.6569 2 12 2C10.3431 2 9 3.34315 9 5V12C9 13.6569 10.3431 15 12 15Z" stroke="currentColor" stroke-width="2"/>
-        <path d="M19 12V13C19 16.866 15.866 20 12 20C8.13401 20 5 16.866 5 13V12" stroke="currentColor" stroke-width="2"/>
-        <path d="M12 20V23" stroke="currentColor" stroke-width="2"/>
-      </svg>
-      Enable Microphone
-    </button>
-    <button id="speakNow" class="btn2d" disabled>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2C10.3431 2 9 3.34315 9 5V12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12V5C15 3.34315 13.6569 2 12 2Z" stroke="currentColor" stroke-width="2"/>
-        <path d="M19 10V12C19 16.4183 15.4183 20 11 20C6.58172 20 3 16.4183 3 12V10" stroke="currentColor" stroke-width="2"/>
-        <path d="M7 12C7 14.7614 9.23858 17 12 17C14.7614 17 17 14.7614 17 12" stroke="currentColor" stroke-width="2"/>
-      </svg>
-      Speak Now (1s)
-    </button>
+    <button id="micPermission" class="btn2d">Enable Microphone</button>
+    <button id="speakNow" class="btn2d" disabled>Speak Now (1s)</button>
     <div id="micStatus" class="status">Microphone: Disabled</div>
-  </div>
-
-  <div class="mood-indicator">
-    <div class="mood-title">Situation Tension</div>
-    <div class="mood-bar">
-      <div class="mood-fill" id="moodFill"></div>
-    </div>
-    <div class="mood-labels">
-      <span>Hostile</span>
-      <span>Calm</span>
-    </div>
-  </div>
-
-  <div class="progress-container">
-    <div class="progress-title">Scenario Progress</div>
-    <div class="progress-steps">
-      <div class="progress-step" id="step1">1</div>
-      <div class="progress-step" id="step2">2</div>
-      <div class="progress-step" id="step3">3</div>
-      <div class="progress-step" id="step4">4</div>
-    </div>
   </div>
 
   <div id="hint" class="hud-top">
@@ -307,7 +47,7 @@
     vr-mode-ui="enabled: true"
   >
     <!-- Camera rig + cursor + controller rays -->
-    <a-entity id="rig" position="0 1.6 2.2">
+    <a-entity id="rig" position="0 1.6 2.25">
       <a-entity id="camera" camera look-controls wasd-controls="acceleration: 10">
         <a-entity
           id="gazeCursor"
@@ -319,27 +59,32 @@
         ></a-entity>
       </a-entity>
       <a-entity id="rightHand" laser-controls="hand: right" raycaster="objects: .clickable; far: 9;"></a-entity>
-      <a-entity id="leftHand" laser-controls="hand: left" raycaster="objects: .clickable; far: 9;"></a-entity>
+      <a-entity id="leftHand"  laser-controls="hand: left"  raycaster="objects: .clickable; far: 9;"></a-entity>
     </a-entity>
 
     <!-- Lighting + floor -->
     <a-entity light="type: hemisphere; color: #fff; groundColor: #223; intensity: 1.0"></a-entity>
-    <a-entity geometry="primitive: plane; width: 36; height: 36" rotation="-90 0 0"
+    <a-entity geometry="primitive: plane; width: 40; height: 40" rotation="-90 0 0"
               material="color: #101827; roughness: 1"></a-entity>
 
-    <!-- NPCs (expressive aggressor + driver/authority) -->
-    <!-- Move aggressor LEFT and farther so it never overlaps the UI panel -->
-    <a-entity id="npcAggressor"
+    <!-- Gift shop COUNTER to prevent overlap with panel; NPC stands behind it -->
+    <a-box id="counter"
+           position="0 0.85 -1.6"
+           width="2.2" height="0.9" depth="0.7"
+           material="color:#1b2333; metalness:0.1; roughness:0.9"></a-box>
+
+    <!-- NPC Customer (expressive) — shifted LEFT and behind counter -->
+    <a-entity id="npcCustomer"
       gltf-model="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/RobotExpressive/glTF-Binary/RobotExpressive.glb"
-      position="-0.8 0 -2.2" rotation="0 165 0" scale="0.78 0.78 0.78"
+      position="-0.55 0 -2.15" rotation="0 165 0" scale="0.8 0.8 0.8"
       animation-mixer="clip: Idle; loop: repeat"
       look-at="#camera">
     </a-entity>
 
-    <!-- Driver stands to the RIGHT, farther back -->
-    <a-entity id="npcDriver"
+    <!-- Manager stand-in (authority) over to the RIGHT/back -->
+    <a-entity id="npcManager"
       gltf-model="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CesiumMan/glTF-Binary/CesiumMan.glb"
-      position="1.4 0 -3.0" rotation="0 150 0" scale="0.95 0.95 0.95"
+      position="1.6 0 -3.2" rotation="0 150 0" scale="0.95 0.95 0.95"
       animation-mixer="clip: idle; loop: repeat"
       look-at="#camera">
     </a-entity>
@@ -349,606 +94,58 @@
               material="color: #93c5fd" visible="false"></a-entity>
 
     <!-- UI Panel (centered in front) -->
-    <a-entity id="uiPanel" position="0 1.12 -1.1">
-      <a-entity geometry="primitive: plane; width: 1.44; height: 0.92"
+    <a-entity id="uiPanel" position="0 1.12 -1.05">
+      <a-entity geometry="primitive: plane; width: 1.48; height: 0.96"
                 material="color: #071426; opacity: .96; side: double"></a-entity>
 
-      <a-entity id="subtitle" position="-0.68 0.30 0.01"
-                text="value: ; color: #e7edf7; width: 1.32; wrapCount: 40; align: left"></a-entity>
-      <a-entity id="youSaid" position="-0.68 0.15 0.01"
-                text="value: ; color: #9fb6d1; width: 1.32; wrapCount: 40; align: left"></a-entity>
+      <a-entity id="subtitle" position="-0.70 0.30 0.01"
+                text="value: ; color: #e7edf7; width: 1.36; wrapCount: 42; align: left"></a-entity>
+      <a-entity id="youSaid" position="-0.70 0.14 0.01"
+                text="value: ; color: #9fb6d1; width: 1.36; wrapCount: 42; align: left"></a-entity>
 
       <!-- Three round-specific options (content changes each round) -->
       <a-entity id="opt1" class="clickable option"
-                geometry="primitive: plane; width: 1.32; height: 0.12"
-                position="0 -0.01 0.01" material="color: #0d203a">
-        <a-entity id="opt1text" position="-0.64 0 0"
-          text="value: ; color: #e5efff; width: 1.22; wrapCount: 38; align: left"></a-entity>
+                geometry="primitive: plane; width: 1.36; height: 0.12"
+                position="0 -0.00 0.01" material="color: #0d203a">
+        <a-entity id="opt1text" position="-0.66 0 0"
+          text="value: ; color: #e5efff; width: 1.26; wrapCount: 40; align: left"></a-entity>
       </a-entity>
       <a-entity id="opt2" class="clickable option"
-                geometry="primitive: plane; width: 1.32; height: 0.12"
+                geometry="primitive: plane; width: 1.36; height: 0.12"
                 position="0 -0.20 0.01" material="color: #0c1b31">
-        <a-entity id="opt2text" position="-0.64 0 0"
-          text="value: ; color: #dbeafe; width: 1.22; wrapCount: 38; align: left"></a-entity>
+        <a-entity id="opt2text" position="-0.66 0 0"
+          text="value: ; color: #dbeafe; width: 1.26; wrapCount: 40; align: left"></a-entity>
       </a-entity>
       <a-entity id="opt3" class="clickable option"
-                geometry="primitive: plane; width: 1.32; height: 0.12"
-                position="0 -0.39 0.01" material="color: #0a1627">
-        <a-entity id="opt3text" position="-0.64 0 0"
-          text="value: ; color: #c7d2fe; width: 1.22; wrapCount: 38; align: left"></a-entity>
+                geometry="primitive: plane; width: 1.36; height: 0.12"
+                position="0 -0.40 0.01" material="color: #0a1627">
+        <a-entity id="opt3text" position="-0.66 0 0"
+          text="value: ; color: #c7d2fe; width: 1.26; wrapCount: 40; align: left"></a-entity>
       </a-entity>
     </a-entity>
 
     <!-- Feedback Card -->
-    <a-entity id="feedbackCard" visible="false" position="0 1.12 -0.95" scale="0 0 0">
-      <a-entity geometry="primitive: plane; width: 1.44; height: 0.92"
+    <a-entity id="feedbackCard" visible="false" position="0 1.12 -0.92" scale="0 0 0">
+      <a-entity geometry="primitive: plane; width: 1.48; height: 0.96"
                 material="color: #00152b; opacity: .98; side: double"></a-entity>
-      <a-entity id="cardTitle" position="-0.68 0.30 0.01"
-                text="value: ; color: #a7f3d0; width: 1.32; wrapCount: 40; align: left"></a-entity>
-      <a-entity id="cardBody" position="-0.68 0.10 0.01"
-                text="value: ; color: #e7edf7; width: 1.32; wrapCount: 40; align: left"></a-entity>
+      <a-entity id="cardTitle" position="-0.70 0.30 0.01"
+                text="value: ; color: #a7f3d0; width: 1.36; wrapCount: 42; align: left"></a-entity>
+      <a-entity id="cardBody" position="-0.70 0.10 0.01"
+                text="value: ; color: #e7edf7; width: 1.36; wrapCount: 42; align: left"></a-entity>
       <a-entity id="btnSave" class="clickable"
-                geometry="primitive: plane; width: 0.58; height: 0.12"
+                geometry="primitive: plane; width: 0.60; height: 0.12"
                 position="-0.32 -0.30 0.01" material="color: #0f2d4a">
-        <a-entity text="value: Save Card (PNG); color:#e0f2fe; width: 0.52; align: center"></a-entity>
+        <a-entity text="value: Save Card (PNG); color:#e0f2fe; width: 0.54; align: center"></a-entity>
       </a-entity>
       <a-entity id="btnReplay" class="clickable"
-                geometry="primitive: plane; width: 0.58; height: 0.12"
+                geometry="primitive: plane; width: 0.60; height: 0.12"
                 position="0.32 -0.30 0.01" material="color: #0b2b33">
-        <a-entity text="value: Replay; color:#d1fae5; width: 0.52; align: center"></a-entity>
+        <a-entity text="value: Replay; color:#d1fae5; width: 0.54; align: center"></a-entity>
       </a-entity>
     </a-entity>
 
     <!-- Logic -->
-    <script>
-      // ===============================
-      // Bystander Coach — Enhanced Version
-      // ===============================
-
-      // -------- Scenario (improved dialogue flow) --------
-      const SCENARIO = {
-        rounds: [
-          {
-            name: 'Round 1 — Set a boundary',
-            npc_line: "Hey, move. That's my seat — now.",
-            options: [
-              { 
-                label: "Direct boundary: 'That's not okay. Please stop.'", 
-                tag: "DIRECT",   
-                effect: "DEESCALATE",
-                good: ["that's not okay","please stop","not okay","stop"], 
-                bad: [] 
-              },
-              { 
-                label: "Distract politely: 'Hey—does this bus stop at North Ave?'", 
-                tag: "DISTRACT", 
-                effect: "NEUTRAL",
-                good: ["north ave","next stop","what stop"], 
-                bad: [] 
-              },
-              { 
-                label: "Insult back (don't do this): 'Shut up and sit somewhere else.'", 
-                tag: "INSULT",   
-                effect: "ESCALATE",
-                good: [], 
-                bad: ["shut up","idiot","stupid","moron","freak"] 
-              }
-            ],
-            replies: {
-              STRONG:   ["Alright, fine. I'll find another seat.", "Okay, okay. No need to get worked up.", "Fine. I was just asking."],
-              NEUTRAL:  ["Huh? What did you say?", "Mind your own business.", "I'm just sitting here."],
-              ESCALATE: ["You wanna go? I'm not moving!", "Oh yeah? Try me!", "Say that again and see what happens!"]
-            }
-          },
-          {
-            name: 'Round 2 — Hold ground / route to help',
-            npc_line: "Why do you care? They can speak for themselves.",
-            options: [
-              { 
-                label: "Delegate to authority: 'Driver, could you help here?'", 
-                tag: "DELEGATE", 
-                effect: "DEESCALATE",
-                good: ["driver","can you help","assist"], 
-                bad: [] 
-              },
-              { 
-                label: "Support + de-escalate: 'We're just riding; let them be.'", 
-                tag: "DEESC", 
-                effect: "DEESCALATE",
-                good: ["let them be","we're just riding"], 
-                bad: [] 
-              },
-              { 
-                label: "Lecture / label them (don't): 'People like you are the problem.'", 
-                tag: "LECTURE", 
-                effect: "ESCALATE",
-                good: [], 
-                bad: ["people like you","you are the problem","learn to","shut"] 
-              }
-            ],
-            replies: {
-              STRONG:   ["Fine. I'll drop it.", "Whatever… I don't need this.", "Alright, I get it."],
-              NEUTRAL:  ["Tch. Whatever.", "Hmph. Okay?", "I'm not causing trouble."],
-              ESCALATE: ["Back off! This is none of your business!", "You think you're better than me?", "Keep talking and you'll regret it!"]
-            }
-          },
-          {
-            name: 'Round 3 — Exit or support target',
-            npc_line: "Tss. You're still here?",
-            options: [
-              { 
-                label: "Move group: 'Let's grab those seats over there.'", 
-                tag: "MOVE", 
-                effect: "DEESCALATE",
-                good: ["over there","grab seats","sit over there"], 
-                bad: [] 
-              },
-              { 
-                label: "Check on target & relocate: 'Are you okay if we move seats?'", 
-                tag: "SUPPORT", 
-                effect: "DEESCALATE",
-                good: ["are you okay","move seats","we're here"], 
-                bad: [] 
-              },
-              { 
-                label: "Keep arguing (don't): 'Say that again and see what happens.'", 
-                tag: "THREAT", 
-                effect: "ESCALATE",
-                good: [], 
-                bad: ["see what happens","or else","fight","hit","punch"] 
-              }
-            ],
-            replies: {
-              STRONG:   ["…Okay. I'm done here.", "Whatever. Do what you want.", "Fine. I'm getting off soon anyway."],
-              NEUTRAL:  ["Tch. Whatever.", "Huh. Okay then.", "…"],
-              ESCALATE: ["You asking for a fight?", "Try me! I'm not scared of you!", "Step closer then! Let's see what you've got!"]
-            }
-          },
-          {
-            name: 'Round 4 — Aftercare (check on the person)',
-            npc_line: "(Aggressor is quiet; check on the person.)",
-            options: [
-              { 
-                label: "'Are you alright?'",             
-                tag: "AFTERCARE", 
-                effect: "DEESCALATE", 
-                good: ["are you alright","are you okay"], 
-                bad: [] 
-              },
-              { 
-                label: "'Want me to stay with you?'",   
-                tag: "AFTERCARE", 
-                effect: "DEESCALATE", 
-                good: ["stay with you","stay"], 
-                bad: [] 
-              },
-              { 
-                label: "'Prefer to move seats?'",        
-                tag: "AFTERCARE", 
-                effect: "DEESCALATE", 
-                good: ["move seats"], 
-                bad: [] 
-              }
-            ],
-            replies: {
-              STRONG:   ["Thank you. I really appreciate it.", "I'm okay now. Thanks for stepping in.", "Thanks. That was getting scary."],
-              NEUTRAL:  ["Okay. Yeah, I'm fine.", "Yeah, thanks.", "Mm. I'm okay."],
-              ESCALATE: ["—"]
-            }
-          }
-        ],
-        // Backup lexicons for voice classification
-        GOOD_GLOBAL: [
-          "that's not okay","please stop","not okay","stop","driver","help","assist",
-          "let them be","we're just riding","over there","move seats","are you okay","are you alright","we're here"
-        ],
-        BAD_GLOBAL: [
-          "shut up","idiot","stupid","moron","freak","people like you","fight","hit","punch","see what happens","or else","loser"
-        ]
-      };
-
-      // -------- State --------
-      const S = {
-        round: 0,
-        mood: 0,                 // -3 hostile … +3 calm
-        lastTone: 'ASSERTIVE',
-        lastText: '',
-        path: [],
-        mic: { stream:null, ctx:null, analyser:null, buf:null }
-      };
-
-      // -------- DOM / A-Frame refs --------
-      const $ = s => document.querySelector(s);
-      const subtitle = $('#subtitle');
-      const youSaid  = $('#youSaid');
-      const uiPanel  = $('#uiPanel');
-      const feedback = $('#feedbackCard');
-      const cardTitle = $('#cardTitle');
-      const cardBody  = $('#cardBody');
-      const moodFill = $('#moodFill');
-
-      const micBtn = $('#micPermission');
-      const speakBtn = $('#speakNow');
-      const micStatus = $('#micStatus');
-
-      const npcAgg = $('#npcAggressor');
-      const npcDrv = $('#npcDriver');
-      const hoverDot = $('#hoverDot');
-
-      const opt1 = $('#opt1'), opt2 = $('#opt2'), opt3 = $('#opt3');
-      const opt1text = $('#opt1text'), opt2text = $('#opt2text'), opt3text = $('#opt3text');
-
-      // ======== RobotExpressive morph targets (facial expressions) ========
-      let aggMesh = null, aggMorphDict = null, aggMorph = null;
-      npcAgg.addEventListener('model-loaded', () => {
-        const mesh = npcAgg.getObject3D('mesh');
-        if (!mesh) return;
-        mesh.traverse(node => {
-          if (node.morphTargetInfluences && node.morphTargetDictionary) {
-            aggMesh = node;
-            aggMorphDict = node.morphTargetDictionary;
-            aggMorph = node.morphTargetInfluences;
-          }
-        });
-        // start slightly tense
-        setAggExpression('angry', 0.8);
-      });
-
-      // Safely set facial expression, fallback to neutral if morph not found
-      function setAggExpression(kind='neutral', strength=0.7) {
-        if (!aggMesh || !aggMorphDict || !aggMorph) return; // safe no-op
-        for (let i=0;i<aggMorph.length;i++) aggMorph[i]=0;  // zero all
-
-        const find = (needles)=>{
-          const names = Object.keys(aggMorphDict);
-          for (const n of names) {
-            const low = n.toLowerCase();
-            if (needles.some(k => low.includes(k))) return aggMorphDict[n];
-          }
-          return null;
-        };
-
-        let key = null;
-        if (kind==='angry')      key = find(['angry','frown','mad']);
-        else if (kind==='happy') key = find(['happy','smile']);
-        else if (kind==='sad')   key = find(['sad']);
-        else if (kind==='surprised') key = find(['surpris','shock']);
-        else key = null;
-
-        if (key!=null) aggMorph[key] = strength;
-      }
-
-      function playAggClip(name, dur=900){
-        // if the clip doesn't exist, fallback to manual head/arm anims
-        npcAgg.setAttribute('animation-mixer', `clip: ${name}; loop: once; clampWhenFinished: true`);
-        // lightweight manual fallback gesture:
-        if (name === 'No') {
-          npcAgg.setAttribute('animation__shake', 'property: rotation; to: 0 175 0; dir: alternate; dur: 120; loop: 3; easing: easeOutQuad');
-          setTimeout(()=> npcAgg.removeAttribute('animation__shake'), dur);
-        } else if (name === 'Yes') {
-          npcAgg.setAttribute('animation__nod', 'property: rotation; to: -6 165 0; dir: alternate; dur: 140; loop: 3; easing: easeInOutQuad');
-          setTimeout(()=> npcAgg.removeAttribute('animation__nod'), dur);
-        }
-        setTimeout(()=> npcAgg.setAttribute('animation-mixer', 'clip: Idle; loop: repeat'), dur+150);
-      }
-
-      function moveAggTo(x=-0.8, z=-2.2, dur=400){
-        npcAgg.setAttribute('animation__move', `property: position; to: ${x} 0 ${z}; dur:${dur}; easing:easeOutQuad`);
-      }
-
-      function driverGlance(){
-        npcDrv.setAttribute('animation__glance', 'property: rotation; to: -6 150 0; dir: alternate; dur: 140; loop: 4; easing: easeInOutQuad');
-        setTimeout(()=> npcDrv.removeAttribute('animation__glance'), 900);
-      }
-
-      // -------- Mic / tone --------
-      async function enableMic(){
-        if (S.mic.stream) return true;
-        try{
-          const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-          const ctx = new (window.AudioContext||window.webkitAudioContext)();
-          const src = ctx.createMediaStreamSource(stream);
-          const analyser = ctx.createAnalyser(); analyser.fftSize = 2048;
-          src.connect(analyser);
-          S.mic = { stream, ctx, analyser, buf:new Float32Array(analyser.fftSize) };
-          micStatus.textContent = 'Microphone: Enabled';
-          speakBtn.disabled = false;
-          return true;
-        }catch(e){
-          micStatus.textContent = 'Microphone: Access Denied';
-          speakBtn.disabled = true;
-          return false;
-        }
-      }
-
-      function measureTone(ms=1000){
-        return new Promise(res=>{
-          if (!S.mic.analyser) return res({bucket:'ASSERTIVE'});
-          const {analyser, buf} = S.mic;
-          let frames=0, sumAbs=0, pace=0, prev=0;
-          const t0 = performance.now();
-          (function loop(){
-            analyser.getFloatTimeDomainData(buf);
-            let abs=0;
-            for (let i=0;i<buf.length;i++){ const v=buf[i]; abs+=Math.abs(v); pace+=Math.abs(v-prev); prev=v; }
-            sumAbs += abs/buf.length; frames++;
-            if (performance.now()-t0 < ms) requestAnimationFrame(loop);
-            else {
-              const rms=(sumAbs/frames)||0, paceNorm=pace/(frames*buf.length);
-              let bucket='CALM'; if (rms>0.6 || paceNorm>0.008) bucket='AGGRESSIVE'; else if (rms>=0.25) bucket='ASSERTIVE';
-              res({bucket});
-            }
-          })();
-        });
-      }
-
-      // Optional STT (desktop). On Quest, STT is often unavailable—buttons still demo well.
-      function runSTT(timeoutMs=1400){
-        return new Promise(resolve=>{
-          const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-          if (!SR) return resolve('');
-          const r = new SR(); r.lang='en-US'; r.interimResults=false; r.maxAlternatives=1;
-          let done=false; const t=setTimeout(()=>{ if(!done){done=true; r.stop(); resolve('');} }, timeoutMs+400);
-          r.onresult = e=>{ if(done) return; done=true; clearTimeout(t); resolve(e.results[0][0].transcript||''); };
-          r.onerror  = ()=>{ if(!done){done=true; clearTimeout(t); resolve('');} };
-          r.onend    = ()=>{ if(!done){done=true; clearTimeout(t); resolve('');} };
-          r.start(); setTimeout(()=> r.stop(), timeoutMs);
-        });
-      }
-
-      // -------- Scoring + mood + reaction lines --------
-      function classifyVoice(text){
-        const T = (text||'').toLowerCase();
-        const good = SCENARIO.GOOD_GLOBAL.some(k => T.includes(k));
-        const bad  = SCENARIO.BAD_GLOBAL.some(k => T.includes(k));
-        if (good && !bad) return 'DEESCALATE';
-        if (bad && !good) return 'ESCALATE';
-        return 'NEUTRAL';
-      }
-
-      function score(turn, text, tone, chosenEffect=null){
-        // If user clicked an option, that carries an intended effect; tone can upgrade/downgrade.
-        let effect = chosenEffect || classifyVoice(text);
-
-        // Tone influences:
-        if (tone === 'AGGRESSIVE') effect = 'ESCALATE';
-        else if (tone === 'CALM' && effect === 'NEUTRAL') effect = 'DEESCALATE';
-
-        // Map effect -> branch
-        if (effect === 'DEESCALATE') return 'STRONG';
-        if (effect === 'ESCALATE')   return 'ESCALATE';
-        return 'NEUTRAL';
-      }
-
-      function pickReply(round, branchKey){
-        const list = SCENARIO.rounds[round].replies[branchKey] || ["…"];
-        return list[Math.floor(Math.random()*list.length)];
-      }
-
-      function adjustMood(branchKey){
-        if (branchKey==='STRONG') S.mood = Math.min(3, S.mood+1);
-        if (branchKey==='ESCALATE') S.mood = Math.max(-3, S.mood-1);
-
-        // Update visual mood indicator
-        const moodPercent = ((S.mood + 3) / 6) * 100;
-        moodFill.style.width = `${moodPercent}%`;
-        
-        // Update NPC behavior based on mood
-        if (S.mood<=-1){ 
-          setAggExpression('angry', 1.0); 
-          moveAggTo(-0.6, -1.6, 260); 
-        }
-        else if (S.mood>=2){ 
-          setAggExpression('happy', 0.6); 
-          moveAggTo(-0.9, -2.6, 300); 
-        }
-        else { 
-          setAggExpression('neutral', 0.0); 
-          moveAggTo(-0.8, -2.2, 280); 
-        }
-      }
-
-      function reactBranch(branchKey){
-        if (branchKey==='ESCALATE'){ 
-          playAggClip('No', 900); 
-          driverGlance(); 
-        }
-        if (branchKey==='STRONG'){   
-          playAggClip('Yes', 900); 
-        }
-        if (branchKey==='NEUTRAL'){  
-          // tiny shrug via rotation
-          npcAgg.setAttribute('animation__shrug','property: rotation; to: 0 170 0; dir: alternate; dur: 220; loop: 2; easing: easeInOutQuad'); 
-          setTimeout(()=> npcAgg.removeAttribute('animation__shrug'), 600); 
-        }
-      }
-
-      // -------- UI helpers --------
-      function setSubtitle(v){ subtitle.setAttribute('text','value', v); }
-      function setYou(v){ youSaid.setAttribute('text','value', v? `You: ${v}` : ''); }
-
-      function labelOptions(round){
-        const [o1,o2,o3] = SCENARIO.rounds[round].options;
-        opt1text.setAttribute('text','value', o1.label);
-        opt2text.setAttribute('text','value', o2.label);
-        opt3text.setAttribute('text','value', o3.label);
-      }
-
-      function updateProgress(){
-        const steps = ['step1', 'step2', 'step3', 'step4'];
-        steps.forEach((stepId, index) => {
-          const step = $(`#${stepId}`);
-          if (index < S.round) {
-            step.classList.add('completed');
-            step.classList.remove('active');
-          } else if (index === S.round) {
-            step.classList.add('active');
-            step.classList.remove('completed');
-          } else {
-            step.classList.remove('active', 'completed');
-          }
-        });
-      }
-
-      // -------- Flow --------
-      function showRound(){
-        const r = SCENARIO.rounds[S.round];
-        setSubtitle(`${r.name}\n${r.npc_line}`);
-        setYou('');
-        labelOptions(S.round);
-        updateProgress();
-
-        // opening behaviors
-        if (S.round===0){ 
-          setAggExpression('angry', 0.8); 
-          moveAggTo(-0.6,-1.8,300); 
-          driverGlance(); 
-        }
-        if (S.round===1){ 
-          moveAggTo(-0.7,-2.0,300); 
-        }
-        if (S.round===2){ 
-          moveAggTo(-0.8,-2.2,300); 
-        }
-        if (S.round===3){ 
-          setAggExpression('happy', 0.5); 
-          moveAggTo(-0.95,-2.6,300); 
-        }
-      }
-
-      function applyResponse({text='', chosenTag='', chosenEffect=null}){
-        const roundData = SCENARIO.rounds[S.round];
-        const tone = S.mic.stream ? S.lastTone : 'ASSERTIVE';
-
-        const branchKey = score(roundData, text || chosenTag, tone, chosenEffect);
-        const npcLine = pickReply(S.round, branchKey);
-
-        setYou(text ? `${text}  (${tone})` : `${chosenTag}  (${tone})`);
-        setSubtitle(npcLine);
-
-        S.path.push({ round:S.round, branch:branchKey, tone, text:text||chosenTag });
-        adjustMood(branchKey);
-        reactBranch(branchKey);
-
-        const wait = 950 + (S.mood<0 ? 400 : 150);
-        setTimeout(()=>{
-          if (S.round >= SCENARIO.rounds.length - 1) endGame();
-          else { S.round++; showRound(); }
-        }, wait);
-      }
-
-      function endGame(){
-        const win = S.path.some(p=>p.branch==='STRONG'); // any cooling move counts
-        const last = S.path[S.path.length-1] || {};
-        const title = win ? '✅ You cooled it down.' : '⚠️ Try a calmer, shorter boundary.';
-        const good  = win ? 'What worked:\n• Clear boundary or useful delegation.\n• No labels/insults.\n• Steady tone.' :
-                            'Try this:\n• 1 short sentence about behavior.\n• Avoid labels/insults.\n• Lower volume; slow pace.';
-        const better = '“That is not okay. Please stop.”\n“We are just riding; let them be.”\n“Driver, could you help here?”';
-
-        uiPanel.setAttribute('visible','false');
-        feedback.setAttribute('visible', true);
-        feedback.setAttribute('animation__in','property: scale; from: 0 0 0; to: 1 1 1; dur: 600; easing: easeOutBack');
-
-        cardTitle.setAttribute('text','value', title);
-        cardBody.setAttribute('text','value',
-          `Last response: “${last.text||'—'}”\nTone: ${last.tone||S.lastTone}\n\n${good}\n\nBetter lines:\n${better}`);
-      }
-
-      function resetAll(){
-        S.round=0; S.mood=0; S.lastTone='ASSERTIVE'; S.lastText=''; S.path=[];
-        uiPanel.setAttribute('visible','true');
-        feedback.setAttribute('visible', false);
-        feedback.removeAttribute('animation__in');
-        moodFill.style.width = '50%';
-        updateProgress();
-        showRound();
-      }
-
-      // -------- Bind clicks + hover feedback --------
-      function bindClickable(el, handler){
-        el.classList.add('clickable');
-        el.addEventListener('click', handler);
-        ['#rightHand','#leftHand'].forEach(sel=>{
-          const rc = document.querySelector(sel);
-          rc.addEventListener('raycaster-intersection', e=>{
-            const hit = e.detail.intersections?.find(i => i.object.el === el);
-            if (!hit) return;
-            const p = hit.point; hoverDot.object3D.position.set(p.x,p.y,p.z);
-            hoverDot.setAttribute('visible','true');
-          });
-          rc.addEventListener('raycaster-intersection-cleared', ()=> hoverDot.setAttribute('visible','false'));
-        });
-      }
-
-      // Button handlers (context-aware)
-      bindClickable(opt1, ()=> {
-        const opt = SCENARIO.rounds[S.round].options[0];
-        applyResponse({ text: opt.label.replace(/^.*?:\s*/,'').replace(/^“|”$/g,''), chosenTag: opt.tag, chosenEffect: opt.effect });
-      });
-      bindClickable(opt2, ()=> {
-        const opt = SCENARIO.rounds[S.round].options[1];
-        applyResponse({ text: opt.label.replace(/^.*?:\s*/,'').replace(/^“|”$/g,''), chosenTag: opt.tag, chosenEffect: opt.effect });
-      });
-      bindClickable(opt3, ()=> {
-        const opt = SCENARIO.rounds[S.round].options[2];
-        applyResponse({ text: opt.label.replace(/^.*?:\s*/,'').replace(/^“|”$/g,''), chosenTag: opt.tag, chosenEffect: opt.effect });
-      });
-
-      // Card buttons
-      bindClickable($('#btnReplay'), resetAll);
-      bindClickable($('#btnSave'), exportCardPNG);
-
-      // -------- Mic UI --------
-      micBtn.addEventListener('click', async ()=>{
-        const ok = await enableMic();
-        if (ok){ 
-          micBtn.textContent='Mic Enabled'; 
-          micBtn.style.background='linear-gradient(135deg, #10b981 0%, #059669 100%)'; 
-        }
-      });
-      speakBtn.addEventListener('click', async ()=>{
-        const ok = await enableMic(); if (!ok) return;
-        speakBtn.textContent = 'Listening…'; speakBtn.disabled = true;
-        const {bucket} = await measureTone(1000);
-        S.lastTone = bucket;
-        // Try STT (desktop). On Quest, STT often unavailable — still use tone.
-        let text = await runSTT(1400);
-        speakBtn.textContent = 'Speak Now (1s)'; speakBtn.disabled = false;
-
-        if (!text){
-          setYou(`(Voice tone: ${S.lastTone}). Pick an option or say one short line.`);
-          return;
-        }
-        applyResponse({ text, chosenTag:'VOICE', chosenEffect: null });
-      });
-
-      // -------- Save feedback as PNG --------
-      function exportCardPNG(){
-        const cnv = $('#exportCanvas'), ctx = cnv.getContext('2d');
-        const pad=20, w=cnv.width, h=cnv.height;
-        ctx.fillStyle='#00152b'; ctx.fillRect(0,0,w,h);
-        const title = $('#cardTitle').getAttribute('text').value;
-        const body  = $('#cardBody').getAttribute('text').value;
-        ctx.fillStyle='#a7f3d0'; ctx.font='bold 24px system-ui, Segoe UI, Roboto'; ctx.fillText(title, pad, pad+26);
-        ctx.fillStyle='#e7edf7'; ctx.font='16px system-ui, Segoe UI, Roboto';
-        wrap(ctx, body, w-pad*2).forEach((line,i)=> ctx.fillText(line, pad, pad+70 + i*22));
-        const a=document.createElement('a'); a.href=cnv.toDataURL('image/png'); a.download='bystander_coach_card.png'; a.click();
-      }
-      function wrap(ctx, text, width){
-        const words=text.split(/\s+/), lines=[]; let line='';
-        for (const w of words){ const t=line? line+' '+w : w; if (ctx.measureText(t).width>width){ if(line) lines.push(line); line=w; } else line=t; }
-        if (line) lines.push(line); return lines;
-      }
-
-      // -------- Init --------
-      document.addEventListener('DOMContentLoaded', ()=>{
-        setTimeout(()=> { 
-          $('#loadingScreen').style.display='none'; 
-          updateProgress();
-          showRound(); 
-        }, 700);
-      });
-    </script>
+    <script src="script.js"></script>
   </a-scene>
 </body>
 </html>

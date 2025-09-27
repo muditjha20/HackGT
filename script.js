@@ -1,90 +1,135 @@
 // ===============================
-// Bystander Coach — Reactive NPC + Strong Logic
+// Gift Shop Situation — Reactive NPC + Strong Logic
 // ===============================
 
-// -------- Scenario (round-specific, clearly good/neutral/bad) --------
+// -------- Background tension audio (subtle) --------
+const Tension = (() => {
+  let ctx, osc, gain, target = 0.05;
+  function ensure() {
+    if (ctx) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    ctx = new AC();
+    osc = ctx.createOscillator();
+    gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = 110; // low hum
+    gain.gain.value = 0.0001;
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start();
+    ramp(0.03);
+  }
+  function ramp(val) {
+    ensure();
+    target = Math.max(0.0, Math.min(0.12, val));
+    gain.gain.cancelScheduledValues(ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, target), ctx.currentTime + 0.5);
+  }
+  return { ramp, up: () => ramp(target + 0.02), down: () => ramp(target - 0.02) };
+})();
+
+// -------- Scenario (uses your exact round 1 text & options) --------
 const SCENARIO = {
   rounds: [
+    // ROUND 1 (exact lines you provided)
     {
-      name: 'Round 1 — Set a boundary',
-      npc_line: "Hey, move. That’s my seat — now.",
+      name: 'Round 1 — Angry refund request',
+      npc_line:
+`You are working at the gift shop. The next customer in line comes up to you, furious that his mug was chipped.
+Him: “I can’t believe you’d sell something like this in a museum gift shop. What a rip-off!”
+You: *pause* “Sorry to hear that. Let me check if we have another one.”
+Him: “Oh come on! I already waste so much money at these gift shops after waiting so long to get to the front, and now I gotta wait even longer while you go and check?! Do you even care about your customers??”`,
       options: [
-        { label: "Direct boundary: “That’s not okay. Please stop.”", tag: "DIRECT",   effect: "DEESCALATE",
-          good: ["that's not okay","please stop","not okay","stop"], bad: [] },
-        { label: "Distract politely: “Hey—does this bus stop at North Ave?”", tag: "DISTRACT", effect: "NEUTRAL",
-          good: ["north ave","next stop","what stop"], bad: [] },
-        { label: "Insult back (don’t do this): “Shut up and sit somewhere else.”", tag: "INSULT",   effect: "ESCALATE",
-          good: [], bad: ["shut up","idiot","stupid","moron","freak"] }
+        { label: "“Hey calm down bruh. It’s just a very small chip, and not very noticeable either. Let me go check and get back to you.”",
+          tag: "DISMISSIVE", effect: "ESCALATE",
+          good: [], bad: ["calm down","small chip","not very","bruh","chill"] },
+        { label: "“I’m really sorry about that! I completely understand how frustrating this is, I can get you a refund or replace the mug, whichever works best for you.”",
+          tag: "EMPATHY_SOLVE", effect: "DEESCALATE",
+          good: ["sorry","understand","refund","replace","whichever"], bad: [] },
+        { label: "“Mm, stop whining like a child and please get out of here. Don't you see the board? It clearly says NO REFUNDS.”",
+          tag: "INSULT_POLICY", effect: "ESCALATE",
+          good: [], bad: ["whining","child","no refunds","get out"] }
       ],
       replies: {
-        STRONG:   ["…Whatever. I’m just saying.", "Fine. Chill.", "Okay, okay."],
-        NEUTRAL:  ["Mind your business.", "Huh?", "What?"],
-        ESCALATE: ["You wanna go?", "Oh yeah? Try me.", "Say that again."]
+        STRONG:   ["…Alright. I just want one that’s not broken.", "Fine, can you swap it then?", "Okay—just fix it."],
+        NEUTRAL:  ["Huh? You’re wasting my time.", "What does that even mean?", "So are you going or not?"],
+        ESCALATE: ["Manager. Now.", "Unbelievable—are you serious?", "You’re not listening at all."]
       }
     },
+
+    // ROUND 2 (negotiation / resolution path)
     {
-      name: 'Round 2 — Hold ground / route to help',
-      npc_line: "Why do you care? They can speak for themselves.",
+      name: 'Round 2 — Offer clear paths',
+      npc_line: "Customer: “So what are you actually going to do about it?”",
       options: [
-        { label: "Delegate to authority: “Driver, could you help here?”", tag: "DELEGATE", effect: "DEESCALATE",
-          good: ["driver","can you help","assist"], bad: [] },
-        { label: "Support + de-escalate: “We’re just riding; let them be.”", tag: "DEESC", effect: "DEESCALATE",
-          good: ["let them be","we're just riding"], bad: [] },
-        { label: "Lecture / label them (don’t): “People like you are the problem.”", tag: "LECTURE", effect: "ESCALATE",
-          good: [], bad: ["people like you","you are the problem","learn to","shut"] }
+        { label: "“Here are two options: a full refund right now, or I can replace it in under two minutes—your choice.”",
+          tag: "CHOICE_CLEAR", effect: "DEESCALATE",
+          good: ["refund right now","replace","two minutes","your choice"], bad: [] },
+        { label: "“Policy says exchanges only—no exceptions.”",
+          tag: "POLICY_ONLY", effect: "NEUTRAL",
+          good: ["exchange"], bad: ["no exceptions","policy says"] },
+        { label: "“Maybe look before you buy next time.”",
+          tag: "BLAME", effect: "ESCALATE",
+          good: [], bad: ["look before you buy","your fault"] }
       ],
       replies: {
-        STRONG:   ["Fine.", "Whatever…", "Alright."],
-        NEUTRAL:  ["Tch.", "Hmph.", "Okay?"],
-        ESCALATE: ["Back off!", "You think you’re better?", "Keep talking."]
+        STRONG:   ["Okay, replace it then.", "Refund. I don’t want it anymore.", "Fine—just make it quick."],
+        NEUTRAL:  ["Tch. Whatever.", "…Hurry up.", "Okay?"],
+        ESCALATE: ["You’re blaming me?", "Wow. Call your manager.", "This is ridiculous."]
       }
     },
+
+    // ROUND 3 (closing / handoff)
     {
-      name: 'Round 3 — Exit or support target',
-      npc_line: "Tss.",
+      name: 'Round 3 — Close it safely',
+      npc_line: "Customer: “Can we just finish this?”",
       options: [
-        { label: "Move group: “Let’s grab those seats over there.”", tag: "MOVE", effect: "DEESCALATE",
-          good: ["over there","grab seats","sit over there"], bad: [] },
-        { label: "Check on target & relocate: “Are you okay if we move seats?”", tag: "SUPPORT", effect: "DEESCALATE",
-          good: ["are you okay","move seats","we're here"], bad: [] },
-        { label: "Keep arguing (don’t): “Say that again and see what happens.”", tag: "THREAT", effect: "ESCALATE",
-          good: [], bad: ["see what happens","or else","fight","hit","punch"] }
+        { label: "“Absolutely. I’ll process that now and throw in a protective wrap. Thanks for letting me fix it.”",
+          tag: "CLOSE_WITH_THANKS", effect: "DEESCALATE",
+          good: ["process now","protective wrap","thanks"], bad: [] },
+        { label: "“Let’s step to the side counter so I can finish this without holding up the line.”",
+          tag: "MOVE_ASIDE", effect: "DEESCALATE",
+          good: ["step to the side","without holding up the line"], bad: [] },
+        { label: "“Keep yelling and I’ll refuse service.”",
+          tag: "THREAT_REFUSE", effect: "ESCALATE",
+          good: [], bad: ["refuse service","keep yelling"] }
       ],
       replies: {
-        STRONG:   ["…Okay.", "Whatever.", "Fine."],
-        NEUTRAL:  ["Tch.", "Huh.", "…"],
-        ESCALATE: ["You asking for it?", "Try me.", "Step closer then."]
+        STRONG:   ["…Alright.", "Thanks.", "Okay, fine."],
+        NEUTRAL:  ["Just do it.", "Hurry up.", "Whatever."],
+        ESCALATE: ["Oh really? Try me.", "Get your boss.", "I’ll leave a review you won’t like."]
       }
     },
+
+    // AFTERCARE — brief check-in
     {
-      name: 'Delay — Aftercare (check on the person)',
-      npc_line: "(Aggressor is quiet; check on the person.)",
+      name: 'Aftercare — Reset & self-check',
+      npc_line: "(The situation is settled. Take a breath. Note one thing you did well and one improvement.)",
       options: [
-        { label: "“Are you alright?”",             tag: "AFTERCARE", effect: "DEESCALATE", good: ["are you alright","are you okay"], bad: [] },
-        { label: "“Want me to stay with you?””",   tag: "AFTERCARE", effect: "DEESCALATE", good: ["stay with you","stay"], bad: [] },
-        { label: "“Prefer to move seats?”",        tag: "AFTERCARE", effect: "DEESCALATE", good: ["move seats"], bad: [] }
+        { label: "“Thanks for your patience—have a good rest of your visit.”", tag: "AFTERCARE", effect: "DEESCALATE", good: ["thanks","patience"], bad: [] },
+        { label: "“If anything else comes up, I’m right here.”", tag: "AFTERCARE", effect: "DEESCALATE", good: ["right here"], bad: [] },
+        { label: "“Next!” (ignore the customer while they finish)", tag: "AFTERCARE_BAD", effect: "ESCALATE", good: [], bad: ["next!"] }
       ],
       replies: {
-        STRONG:   ["Thank you.", "I appreciate it.", "Thanks."],
-        NEUTRAL:  ["Okay.", "Yeah.", "Mm."],
-        ESCALATE: ["—"]
+        STRONG:   ["(Customer nods, leaves.)", "(Customer softens, walks off.)", "Thanks."],
+        NEUTRAL:  ["(Customer shrugs.)", "Okay.", "Sure."],
+        ESCALATE: ["(Customer glares.)"]
       }
     }
   ],
-  // Backup lexicons for voice classification
   GOOD_GLOBAL: [
-    "that's not okay","please stop","not okay","stop","driver","help","assist",
-    "let them be","we're just riding","over there","move seats","are you okay","are you alright","we're here"
+    "sorry","understand","refund","replace","whichever","refund right now","two minutes","your choice",
+    "process now","protective wrap","thanks","step to the side","without holding up the line","right here"
   ],
   BAD_GLOBAL: [
-    "shut up","idiot","stupid","moron","freak","people like you","fight","hit","punch","see what happens","or else","loser"
+    "calm down","small chip","not very","bruh","whining","child","no refunds","get out",
+    "no exceptions","look before you buy","your fault","refuse service","keep yelling","next!"
   ]
 };
 
 // -------- State --------
 const S = {
   round: 0,
-  mood: 0,                 // -3 hostile … +3 calm
+  mood: -1,               // start a bit hostile
   lastTone: 'ASSERTIVE',
   lastText: '',
   path: [],
@@ -104,39 +149,38 @@ const micBtn = $('#micPermission');
 const speakBtn = $('#speakNow');
 const micStatus = $('#micStatus');
 
-const npcAgg = $('#npcAggressor');
-const npcDrv = $('#npcDriver');
+const npcCust = $('#npcCustomer');
+const npcMgr = $('#npcManager');
 const hoverDot = $('#hoverDot');
 
-const opt1 = $('#opt1'), opt2 = $('#opt2'), opt3 = $('#opt3');
-const opt1text = $('#opt1text'), opt2text = $('#opt2text'), opt3text = $('#opt3text');
-
 // ======== RobotExpressive morph targets (facial expressions) ========
-let aggMesh = null, aggMorphDict = null, aggMorph = null;
-npcAgg.addEventListener('model-loaded', () => {
-  const mesh = npcAgg.getObject3D('mesh');
+let custMesh = null, custMorphDict = null, custMorph = null;
+npcCust.addEventListener('model-loaded', () => {
+  const mesh = npcCust.getObject3D('mesh');
   if (!mesh) return;
   mesh.traverse(node => {
     if (node.morphTargetInfluences && node.morphTargetDictionary) {
-      aggMesh = node;
-      aggMorphDict = node.morphTargetDictionary;
-      aggMorph = node.morphTargetInfluences;
+      custMesh = node;
+      custMorphDict = node.morphTargetDictionary;
+      custMorph = node.morphTargetInfluences;
     }
   });
-  // start slightly tense
-  setAggExpression('angry', 0.8);
+  // initial tense look and subtle lean towards counter
+  setCustomerExpression('angry', 0.85);
+  npcLeanTowardCounter(true);
+  Tension.ramp(0.06);
 });
 
 // Safely set facial expression, fallback to neutral if morph not found
-function setAggExpression(kind='neutral', strength=0.7) {
-  if (!aggMesh || !aggMorphDict || !aggMorph) return; // safe no-op
-  for (let i=0;i<aggMorph.length;i++) aggMorph[i]=0;  // zero all
+function setCustomerExpression(kind='neutral', strength=0.7) {
+  if (!custMesh || !custMorphDict || !custMorph) return;
+  for (let i=0;i<custMorph.length;i++) custMorph[i]=0;  // zero all
 
   const find = (needles)=>{
-    const names = Object.keys(aggMorphDict);
+    const names = Object.keys(custMorphDict);
     for (const n of names) {
       const low = n.toLowerCase();
-      if (needles.some(k => low.includes(k))) return aggMorphDict[n];
+      if (needles.some(k => low.includes(k))) return custMorphDict[n];
     }
     return null;
   };
@@ -146,32 +190,39 @@ function setAggExpression(kind='neutral', strength=0.7) {
   else if (kind==='happy') key = find(['happy','smile']);
   else if (kind==='sad')   key = find(['sad']);
   else if (kind==='surprised') key = find(['surpris','shock']);
-  else key = null;
 
-  if (key!=null) aggMorph[key] = strength;
+  if (key!=null) custMorph[key] = strength;
 }
 
-function playAggClip(name, dur=900){
-  // if the clip doesn't exist, fallback to manual head/arm anims
-  npcAgg.setAttribute('animation-mixer', `clip: ${name}; loop: once; clampWhenFinished: true`);
-  // lightweight manual fallback gesture:
+function playCustomerClip(name, dur=900){
+  // Fallback head gestures in case clip names differ
+  npcCust.setAttribute('animation-mixer', `clip: ${name}; loop: once; clampWhenFinished: true`);
   if (name === 'No') {
-    npcAgg.setAttribute('animation__shake', 'property: rotation; to: 0 175 0; dir: alternate; dur: 120; loop: 3; easing: easeOutQuad');
-    setTimeout(()=> npcAgg.removeAttribute('animation__shake'), dur);
+    npcCust.setAttribute('animation__shake', 'property: rotation; to: 0 170 0; dir: alternate; dur: 120; loop: 3; easing: easeOutQuad');
+    setTimeout(()=> npcCust.removeAttribute('animation__shake'), dur);
   } else if (name === 'Yes') {
-    npcAgg.setAttribute('animation__nod', 'property: rotation; to: -6 165 0; dir: alternate; dur: 140; loop: 3; easing: easeInOutQuad');
-    setTimeout(()=> npcAgg.removeAttribute('animation__nod'), dur);
+    npcCust.setAttribute('animation__nod', 'property: rotation; to: -6 165 0; dir: alternate; dur: 140; loop: 3; easing: easeInOutQuad');
+    setTimeout(()=> npcCust.removeAttribute('animation__nod'), dur);
   }
-  setTimeout(()=> npcAgg.setAttribute('animation-mixer', 'clip: Idle; loop: repeat'), dur+150);
+  setTimeout(()=> npcCust.setAttribute('animation-mixer', 'clip: Idle; loop: repeat'), dur+150);
 }
 
-function moveAggTo(x=-0.8, z=-2.2, dur=400){
-  npcAgg.setAttribute('animation__move', `property: position; to: ${x} 0 ${z}; dur:${dur}; easing:easeOutQuad`);
+function moveCustomerTo(x=-0.55, z=-2.15, dur=360){
+  npcCust.setAttribute('animation__move', `property: position; to: ${x} 0 ${z}; dur:${dur}; easing:easeOutQuad`);
 }
 
-function driverGlance(){
-  npcDrv.setAttribute('animation__glance', 'property: rotation; to: -6 150 0; dir: alternate; dur: 140; loop: 4; easing: easeInOutQuad');
-  setTimeout(()=> npcDrv.removeAttribute('animation__glance'), 900);
+function npcLeanTowardCounter(on=true){
+  if (on){
+    npcCust.setAttribute('animation__lean', 'property: rotation; to: -6 165 0; dir: alternate; dur: 700; loop: true; easing: easeInOutSine');
+  } else {
+    npcCust.removeAttribute('animation__lean');
+    npcCust.setAttribute('rotation', '0 165 0');
+  }
+}
+
+function managerGlance(){
+  npcMgr.setAttribute('animation__glance', 'property: rotation; to: -6 150 0; dir: alternate; dur: 140; loop: 4; easing: easeInOutQuad');
+  setTimeout(()=> npcMgr.removeAttribute('animation__glance'), 900);
 }
 
 // -------- Mic / tone --------
@@ -215,7 +266,6 @@ function measureTone(ms=1000){
   });
 }
 
-// Optional STT (desktop). On Quest, STT is often unavailable—buttons still demo well.
 function runSTT(timeoutMs=1400){
   return new Promise(resolve=>{
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -240,14 +290,9 @@ function classifyVoice(text){
 }
 
 function score(turn, text, tone, chosenEffect=null){
-  // If user clicked an option, that carries an intended effect; tone can upgrade/downgrade.
   let effect = chosenEffect || classifyVoice(text);
-
-  // Tone influences:
   if (tone === 'AGGRESSIVE') effect = 'ESCALATE';
   else if (tone === 'CALM' && effect === 'NEUTRAL') effect = 'DEESCALATE';
-
-  // Map effect -> branch
   if (effect === 'DEESCALATE') return 'STRONG';
   if (effect === 'ESCALATE')   return 'ESCALATE';
   return 'NEUTRAL';
@@ -259,18 +304,19 @@ function pickReply(round, branchKey){
 }
 
 function adjustMood(branchKey){
-  if (branchKey==='STRONG') S.mood = Math.min(3, S.mood+1);
-  if (branchKey==='ESCALATE') S.mood = Math.max(-3, S.mood-1);
+  if (branchKey==='STRONG'){ S.mood = Math.min(3, S.mood+1); Tension.down(); }
+  if (branchKey==='ESCALATE'){ S.mood = Math.max(-3, S.mood-1); Tension.up(); }
 
-  if (S.mood<=-1){ setAggExpression('angry', 1.0); moveAggTo(-0.6, -1.6, 260); }
-  else if (S.mood>=2){ setAggExpression('happy', 0.6); moveAggTo(-0.9, -2.6, 300); }
-  else { setAggExpression('neutral', 0.0); moveAggTo(-0.8, -2.2, 280); }
+  // Distances + expressions keyed to mood
+  if (S.mood<=-1){ setCustomerExpression('angry', 0.95); moveCustomerTo(-0.45, -1.85, 260); npcLeanTowardCounter(true); }
+  else if (S.mood>=2){ setCustomerExpression('happy', 0.6); moveCustomerTo(-0.65, -2.35, 300); npcLeanTowardCounter(false); }
+  else { setCustomerExpression('neutral', 0.15); moveCustomerTo(-0.55, -2.15, 280); npcLeanTowardCounter(true); }
 }
 
 function reactBranch(branchKey){
-  if (branchKey==='ESCALATE'){ playAggClip('No', 900); driverGlance(); }
-  if (branchKey==='STRONG'){   playAggClip('Yes', 900); }
-  if (branchKey==='NEUTRAL'){  /* tiny shrug via rotation */ npcAgg.setAttribute('animation__shrug','property: rotation; to: 0 170 0; dir: alternate; dur: 220; loop: 2; easing: easeInOutQuad'); setTimeout(()=> npcAgg.removeAttribute('animation__shrug'), 600); }
+  if (branchKey==='ESCALATE'){ playCustomerClip('No', 900); managerGlance(); }
+  if (branchKey==='STRONG'){   playCustomerClip('Yes', 900); }
+  if (branchKey==='NEUTRAL'){  npcCust.setAttribute('animation__shrug','property: rotation; to: 0 168 0; dir: alternate; dur: 220; loop: 2; easing: easeInOutQuad'); setTimeout(()=> npcCust.removeAttribute('animation__shrug'), 600); }
 }
 
 // -------- UI helpers --------
@@ -279,9 +325,9 @@ function setYou(v){ youSaid.setAttribute('text','value', v? `You: ${v}` : ''); }
 
 function labelOptions(round){
   const [o1,o2,o3] = SCENARIO.rounds[round].options;
-  opt1text.setAttribute('text','value', o1.label);
-  opt2text.setAttribute('text','value', o2.label);
-  opt3text.setAttribute('text','value', o3.label);
+  $('#opt1text').setAttribute('text','value', o1.label);
+  $('#opt2text').setAttribute('text','value', o2.label);
+  $('#opt3text').setAttribute('text','value', o3.label);
 }
 
 // -------- Flow --------
@@ -291,11 +337,11 @@ function showRound(){
   setYou('');
   labelOptions(S.round);
 
-  // opening behaviors
-  if (S.round===0){ setAggExpression('angry', 0.8); moveAggTo(-0.6,-1.8,300); driverGlance(); }
-  if (S.round===1){ moveAggTo(-0.7,-2.0,300); }
-  if (S.round===2){ moveAggTo(-0.8,-2.2,300); }
-  if (S.round===3){ setAggExpression('happy', 0.5); moveAggTo(-0.95,-2.6,300); }
+  // Round-specific staging
+  if (S.round===0){ setCustomerExpression('angry', 0.85); moveCustomerTo(-0.5,-2.0,320); managerGlance(); }
+  if (S.round===1){ moveCustomerTo(-0.55,-2.1,300); }
+  if (S.round===2){ moveCustomerTo(-0.6,-2.2,300); }
+  if (S.round===3){ setCustomerExpression('happy', 0.5); moveCustomerTo(-0.7,-2.35,300); }
 }
 
 function applyResponse({text='', chosenTag='', chosenEffect=null}){
@@ -320,14 +366,14 @@ function applyResponse({text='', chosenTag='', chosenEffect=null}){
 }
 
 function endGame(){
-  const win = S.path.some(p=>p.branch==='STRONG'); // any cooling move counts
+  const win = S.path.some(p=>p.branch==='STRONG');
   const last = S.path[S.path.length-1] || {};
-  const title = win ? '✅ You cooled it down.' : '⚠️ Try a calmer, shorter boundary.';
-  const good  = win ? 'What worked:\n• Clear boundary or useful delegation.\n• No labels/insults.\n• Steady tone.' :
-                      'Try this:\n• 1 short sentence about behavior.\n• Avoid labels/insults.\n• Lower volume; slow pace.';
-  const better = '“That’s not okay. Please stop.”\n“We’re just riding; let them be.”\n“Driver, could you help here?”';
+  const title = win ? '✅ You resolved it professionally.' : '⚠️ Try an empathic, concrete fix next time.';
+  const good  = win ? 'What worked:\n• Empathy + clear choices (refund/replace).\n• No minimizing, no insults.\n• Kept voice steady.' :
+                      'Try this:\n• Start with empathy (“I’m sorry… I understand”).\n• Offer concrete options you can deliver.\n• Avoid “calm down”, labels, threats.';
+  const better = '“I’m really sorry this happened—refund or replace, your choice.”\n“Let’s step to the side so I can fix this quickly.”';
 
-  uiPanel.setAttribute('visible','false');
+  uiPanel.setAttribute('visible','true'); // keep visible for reading; we still show card overlay
   feedback.setAttribute('visible', true);
   feedback.setAttribute('animation__in','property: scale; from: 0 0 0; to: 1 1 1; dur: 600; easing: easeOutBack');
 
@@ -336,15 +382,7 @@ function endGame(){
     `Last response: “${last.text||'—'}”\nTone: ${last.tone||S.lastTone}\n\n${good}\n\nBetter lines:\n${better}`);
 }
 
-function resetAll(){
-  S.round=0; S.mood=0; S.lastTone='ASSERTIVE'; S.lastText=''; S.path=[];
-  uiPanel.setAttribute('visible','true');
-  feedback.setAttribute('visible', false);
-  feedback.removeAttribute('animation__in');
-  showRound();
-}
-
-// -------- Bind clicks + hover feedback --------
+// -------- Buttons, hover, mic, PNG --------
 function bindClickable(el, handler){
   el.classList.add('clickable');
   el.addEventListener('click', handler);
@@ -360,25 +398,22 @@ function bindClickable(el, handler){
   });
 }
 
-// Button handlers (context-aware)
-bindClickable(opt1, ()=> {
+bindClickable($('#opt1'), ()=> {
   const opt = SCENARIO.rounds[S.round].options[0];
-  applyResponse({ text: opt.label.replace(/^.*?:\s*/,'').replace(/^“|”$/g,''), chosenTag: opt.tag, chosenEffect: opt.effect });
+  applyResponse({ text: stripQuotes(opt.label), chosenTag: opt.tag, chosenEffect: opt.effect });
 });
-bindClickable(opt2, ()=> {
+bindClickable($('#opt2'), ()=> {
   const opt = SCENARIO.rounds[S.round].options[1];
-  applyResponse({ text: opt.label.replace(/^.*?:\s*/,'').replace(/^“|”$/g,''), chosenTag: opt.tag, chosenEffect: opt.effect });
+  applyResponse({ text: stripQuotes(opt.label), chosenTag: opt.tag, chosenEffect: opt.effect });
 });
-bindClickable(opt3, ()=> {
+bindClickable($('#opt3'), ()=> {
   const opt = SCENARIO.rounds[S.round].options[2];
-  applyResponse({ text: opt.label.replace(/^.*?:\s*/,'').replace(/^“|”$/g,''), chosenTag: opt.tag, chosenEffect: opt.effect });
+  applyResponse({ text: stripQuotes(opt.label), chosenTag: opt.tag, chosenEffect: opt.effect });
 });
 
-// Card buttons
 bindClickable($('#btnReplay'), resetAll);
 bindClickable($('#btnSave'), exportCardPNG);
 
-// -------- Mic UI --------
 micBtn.addEventListener('click', async ()=>{
   const ok = await enableMic();
   if (ok){ micBtn.textContent='Mic Enabled'; micBtn.style.background='#0e7a3f'; }
@@ -388,7 +423,6 @@ speakBtn.addEventListener('click', async ()=>{
   speakBtn.textContent = 'Listening…'; speakBtn.disabled = true;
   const {bucket} = await measureTone(1000);
   S.lastTone = bucket;
-  // Try STT (desktop). On Quest, STT often unavailable — still use tone.
   let text = await runSTT(1400);
   speakBtn.textContent = 'Speak Now (1s)'; speakBtn.disabled = false;
 
@@ -399,7 +433,6 @@ speakBtn.addEventListener('click', async ()=>{
   applyResponse({ text, chosenTag:'VOICE', chosenEffect: null });
 });
 
-// -------- Save feedback as PNG --------
 function exportCardPNG(){
   const cnv = $('#exportCanvas'), ctx = cnv.getContext('2d');
   const pad=20, w=cnv.width, h=cnv.height;
@@ -416,8 +449,16 @@ function wrap(ctx, text, width){
   for (const w of words){ const t=line? line+' '+w : w; if (ctx.measureText(t).width>width){ if(line) lines.push(line); line=w; } else line=t; }
   if (line) lines.push(line); return lines;
 }
+function stripQuotes(s){ return (s||'').replace(/^“|”$/g,'').replace(/^.*?:\s*/,''); }
 
-// -------- Init --------
+// -------- Reset & Init --------
+function resetAll(){
+  S.round=0; S.mood=-1; S.lastTone='ASSERTIVE'; S.lastText=''; S.path=[];
+  feedback.setAttribute('visible', false);
+  feedback.removeAttribute('animation__in');
+  showRound();
+}
+
 document.addEventListener('DOMContentLoaded', ()=>{
   setTimeout(()=> { $('#loadingScreen').style.display='none'; showRound(); }, 700);
 });
