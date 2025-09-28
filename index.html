@@ -6,7 +6,7 @@
     name="viewport"
     content="width=device-width, initial-scale=1.0, viewport-fit=cover"
   />
-  <title>Bystander Coach — Gift Shop De-Escalation</title>
+  <title>Bystander Coach — Gift Shop De-Escalation (No Overlap)</title>
 
   <!-- A-Frame core -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
@@ -57,7 +57,70 @@
           material="color: #e2e8f0; shader: flat; opacity: .85"
           raycaster="objects: .clickable"
         ></a-entity>
+
+        <!-- ===== CAMERA-ATTACHED UI (always in front, no overlap) ===== -->
+
+        <!-- UI Panel (HUD) -->
+        <a-entity id="uiPanel" position="0 -0.06 -0.95" rotation="0 0 0" scale="1 1 1">
+          <a-entity geometry="primitive: plane; width: 1.22; height: 0.78"
+                    material="color: #071426; opacity: .98; side: double; shader: flat; depthTest: false; depthWrite: false"></a-entity>
+
+          <a-entity id="subtitle" position="-0.58 0.23 0.002"
+                    text="value: ; color: #e7edf7; width: 1.12; wrapCount: 34; align: left"></a-entity>
+          <a-entity id="youSaid" position="-0.58 0.08 0.002"
+                    text="value: ; color: #9fb6d1; width: 1.12; wrapCount: 34; align: left"></a-entity>
+
+          <!-- Three round-specific options (content changes each round) -->
+          <a-entity id="opt1" class="clickable option"
+                    geometry="primitive: plane; width: 1.12; height: 0.11"
+                    position="0 -0.02 0.002"
+                    material="color: #0d203a; shader: flat; depthTest: false; depthWrite: false">
+            <a-entity id="opt1text" position="-0.55 0 0.001"
+              text="value: ; color: #e5efff; width: 1.04; wrapCount: 32; align: left"></a-entity>
+          </a-entity>
+
+          <a-entity id="opt2" class="clickable option"
+                    geometry="primitive: plane; width: 1.12; height: 0.11"
+                    position="0 -0.20 0.002"
+                    material="color: #0c1b31; shader: flat; depthTest: false; depthWrite: false">
+            <a-entity id="opt2text" position="-0.55 0 0.001"
+              text="value: ; color: #dbeafe; width: 1.04; wrapCount: 32; align: left"></a-entity>
+          </a-entity>
+
+          <a-entity id="opt3" class="clickable option"
+                    geometry="primitive: plane; width: 1.12; height: 0.11"
+                    position="0 -0.38 0.002"
+                    material="color: #0a1627; shader: flat; depthTest: false; depthWrite: false">
+            <a-entity id="opt3text" position="-0.55 0 0.001"
+              text="value: ; color: #c7d2fe; width: 1.04; wrapCount: 32; align: left"></a-entity>
+          </a-entity>
+        </a-entity>
+
+        <!-- Feedback Card (HUD) -->
+        <a-entity id="feedbackCard" visible="false" position="0 -0.06 -0.9" scale="0 0 0">
+          <a-entity geometry="primitive: plane; width: 1.22; height: 0.78"
+                    material="color: #00152b; opacity: .98; side: double; shader: flat; depthTest: false; depthWrite: false"></a-entity>
+          <a-entity id="cardTitle" position="-0.58 0.23 0.002"
+                    text="value: ; color: #a7f3d0; width: 1.12; wrapCount: 34; align: left"></a-entity>
+          <a-entity id="cardBody" position="-0.58 0.06 0.002"
+                    text="value: ; color: #e7edf7; width: 1.12; wrapCount: 34; align: left"></a-entity>
+          <a-entity id="btnSave" class="clickable"
+                    geometry="primitive: plane; width: 0.52; height: 0.11"
+                    position="-0.28 -0.24 0.002"
+                    material="color: #0f2d4a; shader: flat; depthTest: false; depthWrite: false">
+            <a-entity text="value: Save Card (PNG); color:#e0f2fe; width: 0.46; align: center"></a-entity>
+          </a-entity>
+          <a-entity id="btnReplay" class="clickable"
+                    geometry="primitive: plane; width: 0.52; height: 0.11"
+                    position="0.28 -0.24 0.002"
+                    material="color: #0b2b33; shader: flat; depthTest: false; depthWrite: false">
+            <a-entity text="value: Replay; color:#d1fae5; width: 0.46; align: center"></a-entity>
+          </a-entity>
+        </a-entity>
+
+        <!-- ===== END HUD ===== -->
       </a-entity>
+
       <a-entity id="rightHand" laser-controls="hand: right" raycaster="objects: .clickable; far: 9;"></a-entity>
       <a-entity id="leftHand"  laser-controls="hand: left"  raycaster="objects: .clickable; far: 9;"></a-entity>
     </a-entity>
@@ -67,24 +130,24 @@
     <a-entity geometry="primitive: plane; width: 40; height: 40" rotation="-90 0 0"
               material="color: #101827; roughness: 1"></a-entity>
 
-    <!-- Gift shop COUNTER to prevent overlap with panel; NPC stands behind it -->
+    <!-- Gift shop COUNTER (wider, further) -->
     <a-box id="counter"
-           position="0 0.85 -1.6"
-           width="2.2" height="0.9" depth="0.7"
+           position="0 0.85 -1.75"
+           width="2.8" height="0.9" depth="0.7"
            material="color:#1b2333; metalness:0.1; roughness:0.9"></a-box>
 
-    <!-- NPC Customer (expressive) — shifted LEFT and behind counter -->
+    <!-- NPC Customer (further left & back) -->
     <a-entity id="npcCustomer"
       gltf-model="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/RobotExpressive/glTF-Binary/RobotExpressive.glb"
-      position="-0.55 0 -2.15" rotation="0 165 0" scale="0.8 0.8 0.8"
+      position="-1.15 0 -2.55" rotation="0 170 0" scale="0.8 0.8 0.8"
       animation-mixer="clip: Idle; loop: repeat"
       look-at="#camera">
     </a-entity>
 
-    <!-- Manager stand-in (authority) over to the RIGHT/back -->
+    <!-- Manager stand-in (authority) to RIGHT/back -->
     <a-entity id="npcManager"
       gltf-model="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CesiumMan/glTF-Binary/CesiumMan.glb"
-      position="1.6 0 -3.2" rotation="0 150 0" scale="0.95 0.95 0.95"
+      position="1.8 0 -3.4" rotation="0 150 0" scale="0.95 0.95 0.95"
       animation-mixer="clip: idle; loop: repeat"
       look-at="#camera">
     </a-entity>
@@ -92,57 +155,6 @@
     <!-- Hover dot for ray hits -->
     <a-entity id="hoverDot" geometry="primitive: sphere; radius: 0.01"
               material="color: #93c5fd" visible="false"></a-entity>
-
-    <!-- UI Panel (centered in front) -->
-    <a-entity id="uiPanel" position="0 1.12 -1.05">
-      <a-entity geometry="primitive: plane; width: 1.48; height: 0.96"
-                material="color: #071426; opacity: .96; side: double"></a-entity>
-
-      <a-entity id="subtitle" position="-0.70 0.30 0.01"
-                text="value: ; color: #e7edf7; width: 1.36; wrapCount: 42; align: left"></a-entity>
-      <a-entity id="youSaid" position="-0.70 0.14 0.01"
-                text="value: ; color: #9fb6d1; width: 1.36; wrapCount: 42; align: left"></a-entity>
-
-      <!-- Three round-specific options (content changes each round) -->
-      <a-entity id="opt1" class="clickable option"
-                geometry="primitive: plane; width: 1.36; height: 0.12"
-                position="0 -0.00 0.01" material="color: #0d203a">
-        <a-entity id="opt1text" position="-0.66 0 0"
-          text="value: ; color: #e5efff; width: 1.26; wrapCount: 40; align: left"></a-entity>
-      </a-entity>
-      <a-entity id="opt2" class="clickable option"
-                geometry="primitive: plane; width: 1.36; height: 0.12"
-                position="0 -0.20 0.01" material="color: #0c1b31">
-        <a-entity id="opt2text" position="-0.66 0 0"
-          text="value: ; color: #dbeafe; width: 1.26; wrapCount: 40; align: left"></a-entity>
-      </a-entity>
-      <a-entity id="opt3" class="clickable option"
-                geometry="primitive: plane; width: 1.36; height: 0.12"
-                position="0 -0.40 0.01" material="color: #0a1627">
-        <a-entity id="opt3text" position="-0.66 0 0"
-          text="value: ; color: #c7d2fe; width: 1.26; wrapCount: 40; align: left"></a-entity>
-      </a-entity>
-    </a-entity>
-
-    <!-- Feedback Card -->
-    <a-entity id="feedbackCard" visible="false" position="0 1.12 -0.92" scale="0 0 0">
-      <a-entity geometry="primitive: plane; width: 1.48; height: 0.96"
-                material="color: #00152b; opacity: .98; side: double"></a-entity>
-      <a-entity id="cardTitle" position="-0.70 0.30 0.01"
-                text="value: ; color: #a7f3d0; width: 1.36; wrapCount: 42; align: left"></a-entity>
-      <a-entity id="cardBody" position="-0.70 0.10 0.01"
-                text="value: ; color: #e7edf7; width: 1.36; wrapCount: 42; align: left"></a-entity>
-      <a-entity id="btnSave" class="clickable"
-                geometry="primitive: plane; width: 0.60; height: 0.12"
-                position="-0.32 -0.30 0.01" material="color: #0f2d4a">
-        <a-entity text="value: Save Card (PNG); color:#e0f2fe; width: 0.54; align: center"></a-entity>
-      </a-entity>
-      <a-entity id="btnReplay" class="clickable"
-                geometry="primitive: plane; width: 0.60; height: 0.12"
-                position="0.32 -0.30 0.01" material="color: #0b2b33">
-        <a-entity text="value: Replay; color:#d1fae5; width: 0.54; align: center"></a-entity>
-      </a-entity>
-    </a-entity>
 
     <!-- Logic -->
     <script src="script.js"></script>

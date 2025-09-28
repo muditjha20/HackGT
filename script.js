@@ -1,5 +1,5 @@
 // ===============================
-// Gift Shop Situation — Reactive NPC + Strong Logic
+// Gift Shop Situation — Reactive NPC + Strong Logic (No Overlap version)
 // ===============================
 
 // -------- Background tension audio (subtle) --------
@@ -27,10 +27,9 @@ const Tension = (() => {
   return { ramp, up: () => ramp(target + 0.02), down: () => ramp(target - 0.02) };
 })();
 
-// -------- Scenario (uses your exact round 1 text & options) --------
+// -------- Scenario (gift shop) --------
 const SCENARIO = {
   rounds: [
-    // ROUND 1 (exact lines you provided)
     {
       name: 'Round 1 — Angry refund request',
       npc_line:
@@ -55,8 +54,6 @@ Him: “Oh come on! I already waste so much money at these gift shops after wait
         ESCALATE: ["Manager. Now.", "Unbelievable—are you serious?", "You’re not listening at all."]
       }
     },
-
-    // ROUND 2 (negotiation / resolution path)
     {
       name: 'Round 2 — Offer clear paths',
       npc_line: "Customer: “So what are you actually going to do about it?”",
@@ -77,8 +74,6 @@ Him: “Oh come on! I already waste so much money at these gift shops after wait
         ESCALATE: ["You’re blaming me?", "Wow. Call your manager.", "This is ridiculous."]
       }
     },
-
-    // ROUND 3 (closing / handoff)
     {
       name: 'Round 3 — Close it safely',
       npc_line: "Customer: “Can we just finish this?”",
@@ -99,8 +94,6 @@ Him: “Oh come on! I already waste so much money at these gift shops after wait
         ESCALATE: ["Oh really? Try me.", "Get your boss.", "I’ll leave a review you won’t like."]
       }
     },
-
-    // AFTERCARE — brief check-in
     {
       name: 'Aftercare — Reset & self-check',
       npc_line: "(The situation is settled. Take a breath. Note one thing you did well and one improvement.)",
@@ -198,25 +191,25 @@ function playCustomerClip(name, dur=900){
   // Fallback head gestures in case clip names differ
   npcCust.setAttribute('animation-mixer', `clip: ${name}; loop: once; clampWhenFinished: true`);
   if (name === 'No') {
-    npcCust.setAttribute('animation__shake', 'property: rotation; to: 0 170 0; dir: alternate; dur: 120; loop: 3; easing: easeOutQuad');
+    npcCust.setAttribute('animation__shake', 'property: rotation; to: 0 168 0; dir: alternate; dur: 120; loop: 3; easing: easeOutQuad');
     setTimeout(()=> npcCust.removeAttribute('animation__shake'), dur);
   } else if (name === 'Yes') {
-    npcCust.setAttribute('animation__nod', 'property: rotation; to: -6 165 0; dir: alternate; dur: 140; loop: 3; easing: easeInOutQuad');
+    npcCust.setAttribute('animation__nod', 'property: rotation; to: -6 170 0; dir: alternate; dur: 140; loop: 3; easing: easeInOutQuad');
     setTimeout(()=> npcCust.removeAttribute('animation__nod'), dur);
   }
   setTimeout(()=> npcCust.setAttribute('animation-mixer', 'clip: Idle; loop: repeat'), dur+150);
 }
 
-function moveCustomerTo(x=-0.55, z=-2.15, dur=360){
+function moveCustomerTo(x=-1.15, z=-2.55, dur=360){
   npcCust.setAttribute('animation__move', `property: position; to: ${x} 0 ${z}; dur:${dur}; easing:easeOutQuad`);
 }
 
 function npcLeanTowardCounter(on=true){
   if (on){
-    npcCust.setAttribute('animation__lean', 'property: rotation; to: -6 165 0; dir: alternate; dur: 700; loop: true; easing: easeInOutSine');
+    npcCust.setAttribute('animation__lean', 'property: rotation; to: -6 170 0; dir: alternate; dur: 700; loop: true; easing: easeInOutSine');
   } else {
     npcCust.removeAttribute('animation__lean');
-    npcCust.setAttribute('rotation', '0 165 0');
+    npcCust.setAttribute('rotation', '0 170 0');
   }
 }
 
@@ -280,10 +273,11 @@ function runSTT(timeoutMs=1400){
 }
 
 // -------- Scoring + mood + reaction lines --------
+const SCEN = SCENARIO;
 function classifyVoice(text){
   const T = (text||'').toLowerCase();
-  const good = SCENARIO.GOOD_GLOBAL.some(k => T.includes(k));
-  const bad  = SCENARIO.BAD_GLOBAL.some(k => T.includes(k));
+  const good = SCEN.GOOD_GLOBAL.some(k => T.includes(k));
+  const bad  = SCEN.BAD_GLOBAL.some(k => T.includes(k));
   if (good && !bad) return 'DEESCALATE';
   if (bad && !good) return 'ESCALATE';
   return 'NEUTRAL';
@@ -299,7 +293,7 @@ function score(turn, text, tone, chosenEffect=null){
 }
 
 function pickReply(round, branchKey){
-  const list = SCENARIO.rounds[round].replies[branchKey] || ["…"];
+  const list = SCEN.rounds[round].replies[branchKey] || ["…"];
   return list[Math.floor(Math.random()*list.length)];
 }
 
@@ -307,16 +301,16 @@ function adjustMood(branchKey){
   if (branchKey==='STRONG'){ S.mood = Math.min(3, S.mood+1); Tension.down(); }
   if (branchKey==='ESCALATE'){ S.mood = Math.max(-3, S.mood-1); Tension.up(); }
 
-  // Distances + expressions keyed to mood
-  if (S.mood<=-1){ setCustomerExpression('angry', 0.95); moveCustomerTo(-0.45, -1.85, 260); npcLeanTowardCounter(true); }
-  else if (S.mood>=2){ setCustomerExpression('happy', 0.6); moveCustomerTo(-0.65, -2.35, 300); npcLeanTowardCounter(false); }
-  else { setCustomerExpression('neutral', 0.15); moveCustomerTo(-0.55, -2.15, 280); npcLeanTowardCounter(true); }
+  // Distances + expressions keyed to mood (further left/back than before)
+  if (S.mood<=-1){ setCustomerExpression('angry', 0.95); moveCustomerTo(-1.0, -2.2, 260); npcLeanTowardCounter(true); }
+  else if (S.mood>=2){ setCustomerExpression('happy', 0.6); moveCustomerTo(-1.25, -2.8, 300); npcLeanTowardCounter(false); }
+  else { setCustomerExpression('neutral', 0.15); moveCustomerTo(-1.15, -2.55, 280); npcLeanTowardCounter(true); }
 }
 
 function reactBranch(branchKey){
   if (branchKey==='ESCALATE'){ playCustomerClip('No', 900); managerGlance(); }
   if (branchKey==='STRONG'){   playCustomerClip('Yes', 900); }
-  if (branchKey==='NEUTRAL'){  npcCust.setAttribute('animation__shrug','property: rotation; to: 0 168 0; dir: alternate; dur: 220; loop: 2; easing: easeInOutQuad'); setTimeout(()=> npcCust.removeAttribute('animation__shrug'), 600); }
+  if (branchKey==='NEUTRAL'){  npcCust.setAttribute('animation__shrug','property: rotation; to: 0 172 0; dir: alternate; dur: 220; loop: 2; easing: easeInOutQuad'); setTimeout(()=> npcCust.removeAttribute('animation__shrug'), 600); }
 }
 
 // -------- UI helpers --------
@@ -324,7 +318,7 @@ function setSubtitle(v){ subtitle.setAttribute('text','value', v); }
 function setYou(v){ youSaid.setAttribute('text','value', v? `You: ${v}` : ''); }
 
 function labelOptions(round){
-  const [o1,o2,o3] = SCENARIO.rounds[round].options;
+  const [o1,o2,o3] = SCEN.rounds[round].options;
   $('#opt1text').setAttribute('text','value', o1.label);
   $('#opt2text').setAttribute('text','value', o2.label);
   $('#opt3text').setAttribute('text','value', o3.label);
@@ -332,20 +326,20 @@ function labelOptions(round){
 
 // -------- Flow --------
 function showRound(){
-  const r = SCENARIO.rounds[S.round];
+  const r = SCEN.rounds[S.round];
   setSubtitle(`${r.name}\n${r.npc_line}`);
   setYou('');
   labelOptions(S.round);
 
-  // Round-specific staging
-  if (S.round===0){ setCustomerExpression('angry', 0.85); moveCustomerTo(-0.5,-2.0,320); managerGlance(); }
-  if (S.round===1){ moveCustomerTo(-0.55,-2.1,300); }
-  if (S.round===2){ moveCustomerTo(-0.6,-2.2,300); }
-  if (S.round===3){ setCustomerExpression('happy', 0.5); moveCustomerTo(-0.7,-2.35,300); }
+  // Round-specific staging (values match the "further left/back" layout)
+  if (S.round===0){ setCustomerExpression('angry', 0.85); moveCustomerTo(-1.05,-2.35,320); managerGlance(); }
+  if (S.round===1){ moveCustomerTo(-1.15,-2.55,300); }
+  if (S.round===2){ moveCustomerTo(-1.2,-2.65,300); }
+  if (S.round===3){ setCustomerExpression('happy', 0.5); moveCustomerTo(-1.25,-2.8,300); }
 }
 
 function applyResponse({text='', chosenTag='', chosenEffect=null}){
-  const roundData = SCENARIO.rounds[S.round];
+  const roundData = SCEN.rounds[S.round];
   const tone = S.mic.stream ? S.lastTone : 'ASSERTIVE';
 
   const branchKey = score(roundData, text || chosenTag, tone, chosenEffect);
@@ -360,7 +354,7 @@ function applyResponse({text='', chosenTag='', chosenEffect=null}){
 
   const wait = 950 + (S.mood<0 ? 400 : 150);
   setTimeout(()=>{
-    if (S.round >= SCENARIO.rounds.length - 1) endGame();
+    if (S.round >= SCEN.rounds.length - 1) endGame();
     else { S.round++; showRound(); }
   }, wait);
 }
@@ -373,7 +367,7 @@ function endGame(){
                       'Try this:\n• Start with empathy (“I’m sorry… I understand”).\n• Offer concrete options you can deliver.\n• Avoid “calm down”, labels, threats.';
   const better = '“I’m really sorry this happened—refund or replace, your choice.”\n“Let’s step to the side so I can fix this quickly.”';
 
-  uiPanel.setAttribute('visible','true'); // keep visible for reading; we still show card overlay
+  // Keep the HUD visible; show the card as an overlay (also HUD)
   feedback.setAttribute('visible', true);
   feedback.setAttribute('animation__in','property: scale; from: 0 0 0; to: 1 1 1; dur: 600; easing: easeOutBack');
 
@@ -399,15 +393,15 @@ function bindClickable(el, handler){
 }
 
 bindClickable($('#opt1'), ()=> {
-  const opt = SCENARIO.rounds[S.round].options[0];
+  const opt = SCEN.rounds[S.round].options[0];
   applyResponse({ text: stripQuotes(opt.label), chosenTag: opt.tag, chosenEffect: opt.effect });
 });
 bindClickable($('#opt2'), ()=> {
-  const opt = SCENARIO.rounds[S.round].options[1];
+  const opt = SCEN.rounds[S.round].options[1];
   applyResponse({ text: stripQuotes(opt.label), chosenTag: opt.tag, chosenEffect: opt.effect });
 });
 bindClickable($('#opt3'), ()=> {
-  const opt = SCENARIO.rounds[S.round].options[2];
+  const opt = SCEN.rounds[S.round].options[2];
   applyResponse({ text: stripQuotes(opt.label), chosenTag: opt.tag, chosenEffect: opt.effect });
 });
 
