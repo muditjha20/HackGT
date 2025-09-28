@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Situation 3 — Museum Classroom Scenario (WebXR)</title>
+  <title>Situation 3 — Museum Classroom Scenario (WebXR Fixed)</title>
   <!-- A-Frame for WebXR -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <style>
@@ -29,7 +29,7 @@
     .app {
       width: 100%; max-width: 920px; background: linear-gradient(180deg, #151a25, #11141a);
       border: 1px solid var(--border); border-radius: 22px; box-shadow: var(--shadow);
-      padding: 22px; display: grid; gap: 18px;
+      padding: 22px; display: grid; gap: 18px; position: relative; z-index: 1;
     }
     header {
       display: flex; align-items: center; justify-content: space-between; gap: 12px;
@@ -37,12 +37,8 @@
     }
     .title { font-weight: 600; letter-spacing: .3px; }
     .meta { color: var(--muted); font-size: 13px; }
-    .stage {
-      display: grid; grid-template-columns: 1.2fr .8fr; gap: 18px;
-    }
-    @media (max-width: 860px) {
-      .stage { grid-template-columns: 1fr; }
-    }
+    .stage { display: grid; grid-template-columns: 1.2fr .8fr; gap: 18px; }
+    @media (max-width: 860px) { .stage { grid-template-columns: 1fr; } }
     .panel {
       background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
       padding: 16px; display: grid; gap: 12px; min-height: 260px;
@@ -51,11 +47,7 @@
       display: grid; grid-template-columns: 60px 1fr auto; gap: 12px; align-items: center;
       background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px;
     }
-    .avatar {
-      width: 60px; height: 60px; border-radius: 50%;
-      display: grid; place-items: center; font-size: 28px; user-select: none;
-      border: 1px solid var(--border); background: #12161e;
-    }
+    .avatar { width: 60px; height: 60px; border-radius: 50%; display: grid; place-items: center; font-size: 28px; user-select: none; border: 1px solid var(--border); background: #12161e; }
     .npc-lines { display: grid; gap: 4px; }
     .npc-name { font-weight: 700; font-size: 14px; }
     .npc-feel.tag {
@@ -66,14 +58,8 @@
     .bad { color: var(--bad); background: rgba(255,107,107,.08); border-color: rgba(255,107,107,.25); }
     .warn { color: var(--warn); background: rgba(245,196,81,.08); border-color: rgba(245,196,81,.25); }
     .muted { color: var(--muted); }
-    .log {
-      display: grid; gap: 10px; max-height: 44vh; overflow: auto; scrollbar-width: thin;
-      padding-right: 4px;
-    }
-    .line {
-      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-      padding: 10px 12px; display: grid; gap: 6px;
-    }
+    .log { display: grid; gap: 10px; max-height: 44vh; overflow: auto; scrollbar-width: thin; padding-right: 4px; }
+    .line { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; display: grid; gap: 6px; }
     .who { font-weight: 600; font-size: 13px; color: var(--muted); }
     .text { font-size: 15px; }
     .chiprow { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -87,35 +73,27 @@
     .chip.yell { background: #1b1416; border-color: #3a2026; }
     .chip.separate { background: #0f1914; border-color: #1f3a2d; }
     .chip.ignore { background: #1a170e; border-color: #3a2f14; }
-    .hint { font-size: 12px; color: var(--muted); }
     .status { display: grid; gap: 10px; }
     .tag { display: inline-block; padding: 6px 10px; border-radius: 8px; font-weight: 700; font-size: 12px; border: 1px solid var(--border); }
     .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .footer {
-      display: flex; align-items: center; justify-content: space-between; color: var(--muted);
-      border-top: 1px dashed #232a3c; padding-top: 10px; margin-top: 4px;
-    }
-    button.reset {
-      border: 1px solid var(--border); background: #121722; color: var(--text);
-      padding: 8px 12px; border-radius: 10px; cursor: pointer; font-weight: 600;
-    }
+    .footer { display: flex; align-items: center; justify-content: space-between; color: var(--muted); border-top: 1px dashed #232a3c; padding-top: 10px; margin-top: 4px; }
+    button.reset { border: 1px solid var(--border); background: #121722; color: var(--text); padding: 8px 12px; border-radius: 10px; cursor: pointer; font-weight: 600; }
     button.reset:hover { border-color: #2a3145; }
 
-    /* Keep the WebXR canvas behind the UI (desktop) */
+    /* WebXR canvas behind the UI (desktop) */
     a-scene { position: fixed; inset: 0; z-index: 0; }
-    .app { position: relative; z-index: 1; }
   </style>
 </head>
 <body>
-  <!-- WebXR scene (optional on desktop; fully interactive in headset) -->
-  <a-scene renderer="antialias: true" vr-mode-ui="enabled: true">
-    <a-entity light="type: ambient; intensity: 0.7"></a-entity>
+  <!-- WebXR scene -->
+  <a-scene renderer="antialias: true; colorManagement: true" vr-mode-ui="enabled: true">
+    <a-entity light="type: ambient; intensity: 0.8"></a-entity>
     <a-entity light="type: directional; intensity: 0.6" position="1 2 1"></a-entity>
     <a-sky color="#0a0f1a"></a-sky>
 
-    <!-- Camera with cursor for gaze / controller ray -->
+    <!-- Camera + cursor -->
     <a-entity id="cameraRig" position="0 1.6 0">
-      <a-entity camera look-controls>
+      <a-entity id="camera" camera look-controls>
         <a-cursor
           fuse="true" fuse-timeout="700"
           material="shader: flat"
@@ -125,34 +103,61 @@
       </a-entity>
     </a-entity>
 
-    <!-- Simple board with NPC + status text -->
-    <a-entity id="board" position="0 1.2 -2">
-      <a-entity geometry="primitive: plane; width: 1.8; height: 1.1" material="color: #1a2030; opacity: 0.95"></a-entity>
+    <!-- Billboard helper: keep UI facing camera -->
+    <script>
+      AFRAME.registerComponent('face-camera', {
+        tick: function () {
+          const cam = this.el.sceneEl.camera;
+          if (!cam) return;
+          const pos = cam.el.object3D.getWorldPosition(new THREE.Vector3());
+          this.el.object3D.lookAt(pos);
+        }
+      });
+    </script>
+
+    <!-- VR board with slight z-offsets to avoid z-fighting -->
+    <a-entity id="board" position="0 1.35 -1.6" face-camera>
+      <a-entity geometry="primitive: plane; width: 1.9; height: 1.25"
+                material="color: #1a2030; opacity: 0.96"></a-entity>
+
+      <!-- Simple emoji face (primitive shapes so it works everywhere) -->
+      <a-circle radius="0.14" color="#24324a" position="-0.78 0.34 0.02"></a-circle>
+      <a-circle radius="0.12" color="#e7e9ee" position="-0.78 0.34 0.025"></a-circle>
+      <a-circle radius="0.012" color="#24324a" position="-0.82 0.36 0.03"></a-circle>
+      <a-circle radius="0.012" color="#24324a" position="-0.74 0.36 0.03"></a-circle>
+      <a-entity geometry="primitive: ring; radiusInner: 0.035; radiusOuter: 0.04; thetaStart: 200; thetaLength: 140"
+                material="color: #24324a" position="-0.78 0.31 0.03"></a-entity>
+
+      <!-- NPC state -->
       <a-entity id="vrNPC"
-                text="value: 😟  Agitated — \"It's not fair! I missed the dinosaur exhibit.\"; align: center; width: 2.4; color: #E7E9EE"
-                position="0 0.35 0"></a-entity>
+                text="value: Agitated — \"It's not fair! I missed the dinosaur exhibit.\"; align: left; width: 1.5; color: #E7E9EE"
+                position="-0.6 0.38 0.02"></a-entity>
+
+      <!-- Short transcript (static) -->
+      <a-entity id="vrTranscript"
+                text="value: B: Maybe you were too slow.\nA: I didn't miss it on purpose!\nC: Maybe pay attention!; align: left; width: 1.7; color: #9AA3B2"
+                position="-0.86 0.08 0.02"></a-entity>
+
+      <!-- Status/outcome -->
       <a-entity id="vrStatus"
-                text="value: Choose a response; align: center; width: 2; color: #9AA3B2"
-                position="0 -0.35 0"></a-entity>
+                text="value: Choose a response; align: center; width: 1.8; color: #9AA3B2"
+                position="0 -0.34 0.02"></a-entity>
     </a-entity>
 
-    <!-- VR buttons -->
-    <a-entity position="0 0.5 -2">
-      <!-- Yell -->
-      <a-box id="vrYell" depth="0.05" height="0.18" width="0.6" color="#7a2a2a" position="-0.7 0 0"></a-box>
-      <a-entity text="value: Yell; align: center; width: 2; color: white" position="-0.7 0 0.03"></a-entity>
+    <!-- VR buttons (clickable) -->
+    <a-entity id="vrButtons" position="0 0.5 -1.6" face-camera>
+      <a-box id="vrYell" class="clickable" depth="0.05" height="0.18" width="0.62" color="#7a2a2a" position="-0.75 0 0"></a-box>
+      <a-entity text="value: Yell; align: center; width: 1.6; color: white" position="-0.75 0 0.03"></a-entity>
 
-      <!-- Separate -->
-      <a-box id="vrSeparate" depth="0.05" height="0.18" width="0.8" color="#1e4d3d" position="0 0 0"></a-box>
-      <a-entity text="value: Separate; align: center; width: 2; color: white" position="0 0 0.03"></a-entity>
+      <a-box id="vrSeparate" class="clickable" depth="0.05" height="0.18" width="0.86" color="#1e4d3d" position="0 0 0"></a-box>
+      <a-entity text="value: Separate; align: center; width: 1.8; color: white" position="0 0 0.03"></a-entity>
 
-      <!-- Ignore -->
-      <a-box id="vrIgnore" depth="0.05" height="0.18" width="0.6" color="#6b5a2a" position="0.7 0 0"></a-box>
-      <a-entity text="value: Ignore; align: center; width: 2; color: white" position="0.7 0 0.03"></a-entity>
+      <a-box id="vrIgnore" class="clickable" depth="0.05" height="0.18" width="0.66" color="#6b5a2a" position="0.75 0 0"></a-box>
+      <a-entity text="value: Ignore; align: center; width: 1.6; color: white" position="0.75 0 0.03"></a-entity>
     </a-entity>
   </a-scene>
 
-  <!-- Original 2D app UI (unchanged behavior) -->
+  <!-- Original 2D app UI -->
   <div class="app" id="app">
     <header>
       <div>
@@ -177,7 +182,7 @@
 
         <div class="log" id="log"></div>
         <div class="footer">
-          <span class="hint" id="hint">Choose a teacher response to see what happens.</span>
+          <span class="muted" id="hint">Choose a teacher response to see what happens.</span>
           <div class="row" id="stateTags"></div>
         </div>
       </section>
@@ -196,13 +201,12 @@
   </div>
 
   <script>
+    // 2D refs
     const logEl = document.getElementById('log');
     const statusEl = document.getElementById('status');
     const hintEl = document.getElementById('hint');
     const tagsEl = document.getElementById('stateTags');
     const resetBtn = document.getElementById('resetBtn');
-
-    // NPC refs (2D)
     const npcAvatar = document.getElementById('npcAvatar');
     const npcLine = document.getElementById('npcLine');
     const npcAside = document.getElementById('npcAside');
@@ -226,13 +230,10 @@
           { who: "Student A (reacts)", text: "That's not fair! You're not listening!" },
           { who: "Narration", text: "After being yelled at, Student A becomes even more frustrated and starts lashing out at others and back at you." }
         ],
-        tags: [
-          { cls: "bad", text: "Escalation" },
-          { cls: "", text: "Emotional safety ↓" }
-        ],
+        tags: [{ cls: "bad", text: "Escalation" }, { cls: "", text: "Emotional safety ↓" }],
         status: { text: "Outcome: Escalation (not recommended in this context)", kind: "bad" },
         npc: { emoji: "😠", feelClass: "bad", feelText: "Upset", line: "\"Please stop yelling…\"", aside: "Heart rate ↑, fight/flight" },
-        vrNPC: "😠  Upset — \"Please stop yelling…\""
+        vrNPC: "Upset — \"Please stop yelling…\""
       },
       separate: {
         teacher: "Alright, let's step aside for a moment to talk. That sounds so frustrating—let's make sure you don't miss out again.",
@@ -240,13 +241,10 @@
           { who: "Student A (reacts)", text: "…Okay. Can I still see the dinosaur later?" },
           { who: "Narration", text: "Away from the crowd, Student A feels safer and opens up. The class teasing subsides while you plan a quick path so they don't miss the next exhibit." }
         ],
-        tags: [
-          { cls: "ok", text: "De-escalation" },
-          { cls: "", text: "Emotional safety ↑" }
-        ],
+        tags: [{ cls: "ok", text: "De-escalation" }, { cls: "", text: "Emotional safety ↑" }],
         status: { text: "Outcome: De-escalation (recommended)", kind: "ok" },
         npc: { emoji: "🙂", feelClass: "ok", feelText: "Calmer", line: "\"Thanks for helping me catch up.\"", aside: "Breathing steadies" },
-        vrNPC: "🙂  Calmer — \"Thanks for helping me catch up.\""
+        vrNPC: "Calmer — \"Thanks for helping me catch up.\""
       },
       ignore: {
         teacher: "(You choose to ignore the situation.)",
@@ -254,13 +252,10 @@
           { who: "Student A (reacts)", text: "Why is nobody helping me?!" },
           { who: "Narration", text: "Without intervention, teasing continues. Some students shove; Student A becomes more agitated and lashes out." }
         ],
-        tags: [
-          { cls: "warn", text: "Avoidance" },
-          { cls: "bad", text: "Harm risk ↑" }
-        ],
+        tags: [{ cls: "warn", text: "Avoidance" }, { cls: "bad", text: "Harm risk ↑" }],
         status: { text: "Outcome: Avoidance leading to escalation (not recommended)", kind: "bad" },
         npc: { emoji: "😢", feelClass: "warn", feelText: "Distressed", line: "\"This is getting worse…\"", aside: "Feels unsafe" },
-        vrNPC: "😢  Distressed — \"This is getting worse…\""
+        vrNPC: "Distressed — \"This is getting worse…\""
       }
     };
 
@@ -292,19 +287,26 @@
 
     function setStatus(text, kind="") {
       statusEl.innerHTML = `<div class="tag ${kind}">${text}</div>`;
-      // Mirror to VR
-      vrStatus.setAttribute('text', `value: ${text}; align: center; width: 2; color: ${kind==='ok'?'#46D28A':'#FF6B6B'}`);
+      // Mirror to VR (color hint only)
+      vrStatus.setAttribute('text', `value: ${text}; align: center; width: 1.8; color: ${kind==='ok'?'#46D28A':'#FF6B6B'}`);
     }
 
     function updateNPC({ emoji, feelClass, feelText, line, aside }, vrText) {
-      // 2D
+      // 2D UI
       npcAvatar.textContent = emoji;
       npcFeel.className = `npc-feel tag ${feelClass}`;
       npcFeel.textContent = feelText;
       npcLine.textContent = line;
       npcAside.textContent = aside;
-      // VR
-      vrNPC.setAttribute('text', `value: ${vrText}; align: center; width: 2.4; color: #E7E9EE`);
+
+      // VR: update face color (happy/neutral/alert) by tinting the inner circle
+      const scene = document.querySelector('a-scene');
+      const innerFace = scene.querySelector('a-circle[color="#e7e9ee"]');
+      if (innerFace) {
+        const tint = (feelClass === 'ok') ? '#dff7ea' : (feelClass === 'bad') ? '#ffdddd' : '#e7e9ee';
+        innerFace.setAttribute('color', tint);
+      }
+      vrNPC.setAttribute('text', `value: ${vrText}; align: left; width: 1.5; color: #E7E9EE`);
     }
 
     function renderInitial() {
@@ -315,10 +317,9 @@
       npcLine.textContent = `"It's not fair! I missed the dinosaur exhibit."`;
       npcAside.textContent = "Waiting for your response…";
       initialTranscript.forEach(addLine);
-      hintEl.textContent = "Choose a teacher response to see what happens.";
       // VR initial
-      vrNPC.setAttribute('text', 'value: 😟  Agitated — "It\'s not fair! I missed the dinosaur exhibit."; align: center; width: 2.4; color: #E7E9EE');
-      vrStatus.setAttribute('text', 'value: Choose a response; align: center; width: 2; color: #9AA3B2');
+      vrNPC.setAttribute('text', 'value: Agitated — "It\'s not fair! I missed the dinosaur exhibit."; align: left; width: 1.5; color: #E7E9EE');
+      vrStatus.setAttribute('text', 'value: Choose a response; align: center; width: 1.8; color: #9AA3B2');
     }
 
     function play(actionKey) {
@@ -328,17 +329,16 @@
       addLine({ who: "Teacher", text: action.teacher });
       action.aftermath.forEach(addLine);
       setTags(action.tags);
-      hintEl.textContent = "Outcome shown. Use Restart to try another path.";
       setStatus(action.status.text, action.status.kind);
       updateNPC(action.npc, action.vrNPC);
     }
 
-    // Wire 2D chips
+    // 2D clicks
     document.querySelectorAll('.chip').forEach(chip => {
       chip.addEventListener('click', () => play(chip.dataset.action));
     });
 
-    // Wire VR boxes
+    // VR clicks (boxes are clickable via cursor fuse or controller ray)
     const vrYell = document.querySelector('#vrYell');
     const vrSeparate = document.querySelector('#vrSeparate');
     const vrIgnore = document.querySelector('#vrIgnore');
