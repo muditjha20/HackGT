@@ -26,7 +26,7 @@
       min-height: 100svh; display: grid; place-items: center; padding: 24px;
     }
     .app {
-      width: 100%; max-width: 880px; background: linear-gradient(180deg, #151a25, #11141a);
+      width: 100%; max-width: 920px; background: linear-gradient(180deg, #151a25, #11141a);
       border: 1px solid var(--border); border-radius: 22px; box-shadow: var(--shadow);
       padding: 22px; display: grid; gap: 18px;
     }
@@ -39,15 +39,34 @@
     .stage {
       display: grid; grid-template-columns: 1.2fr .8fr; gap: 18px;
     }
-    @media (max-width: 820px) {
+    @media (max-width: 860px) {
       .stage { grid-template-columns: 1fr; }
     }
     .panel {
       background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
       padding: 16px; display: grid; gap: 12px; min-height: 260px;
     }
+    .npc {
+      display: grid; grid-template-columns: 60px 1fr auto; gap: 12px; align-items: center;
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px;
+    }
+    .avatar {
+      width: 60px; height: 60px; border-radius: 50%;
+      display: grid; place-items: center; font-size: 28px; user-select: none;
+      border: 1px solid var(--border); background: #12161e;
+    }
+    .npc-lines { display: grid; gap: 4px; }
+    .npc-name { font-weight: 700; font-size: 14px; }
+    .npc-feel.tag {
+      padding: 6px 10px; border-radius: 8px; font-weight: 700; font-size: 12px;
+      border: 1px solid var(--border); white-space: nowrap;
+    }
+    .ok { color: var(--good); background: rgba(70,210,138,.08); border-color: rgba(70,210,138,.25); }
+    .bad { color: var(--bad); background: rgba(255,107,107,.08); border-color: rgba(255,107,107,.25); }
+    .warn { color: var(--warn); background: rgba(245,196,81,.08); border-color: rgba(245,196,81,.25); }
+    .muted { color: var(--muted); }
     .log {
-      display: grid; gap: 10px; max-height: 48vh; overflow: auto; scrollbar-width: thin;
+      display: grid; gap: 10px; max-height: 44vh; overflow: auto; scrollbar-width: thin;
       padding-right: 4px;
     }
     .line {
@@ -68,16 +87,8 @@
     .chip.separate { background: #0f1914; border-color: #1f3a2d; }
     .chip.ignore { background: #1a170e; border-color: #3a2f14; }
     .hint { font-size: 12px; color: var(--muted); }
-    .status {
-      display: grid; gap: 10px;
-    }
-    .tag {
-      display: inline-block; padding: 6px 10px; border-radius: 8px; font-weight: 700; font-size: 12px;
-      border: 1px solid var(--border);
-    }
-    .ok { color: var(--good); background: rgba(70,210,138,.08); border-color: rgba(70,210,138,.25); }
-    .bad { color: var(--bad); background: rgba(255,107,107,.08); border-color: rgba(255,107,107,.25); }
-    .warn { color: var(--warn); background: rgba(245,196,81,.08); border-color: rgba(245,196,81,.25); }
+    .status { display: grid; gap: 10px; }
+    .tag { display: inline-block; padding: 6px 10px; border-radius: 8px; font-weight: 700; font-size: 12px; border: 1px solid var(--border); }
     .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .footer {
       display: flex; align-items: center; justify-content: space-between; color: var(--muted);
@@ -101,8 +112,20 @@
     </header>
 
     <div class="stage">
-      <!-- Left: Transcript / Outcome -->
+      <!-- Left: NPC + Transcript -->
       <section class="panel" aria-live="polite">
+        <!-- NPC card that reacts -->
+        <div class="npc" id="npcCard">
+          <div class="avatar" id="npcAvatar" aria-hidden="true">😟</div>
+          <div class="npc-lines">
+            <div class="npc-name">Student A (frustrated)</div>
+            <div class="npc-line" id="npcLine">"It's not fair! I missed the dinosaur exhibit."</div>
+            <div class="muted" id="npcAside">Waiting for your response…</div>
+          </div>
+          <div class="npc-feel tag warn" id="npcFeel">Agitated</div>
+        </div>
+
+        <!-- Dialogue log -->
         <div class="log" id="log"></div>
         <div class="footer">
           <span class="hint" id="hint">Choose a teacher response to see what happens.</span>
@@ -118,21 +141,23 @@
           <div class="chip separate" data-action="separate">Separate the student from the class</div>
           <div class="chip ignore" data-action="ignore">Ignore the situation</div>
         </div>
-        <div class="hint">
-          The UI is minimal on purpose. Each option immediately plays out the hard-coded outcome for this scenario.
-        </div>
         <div class="status" id="status"></div>
       </aside>
     </div>
   </div>
 
   <script>
-    // ----- Minimal state + renderer -----
     const logEl = document.getElementById('log');
     const statusEl = document.getElementById('status');
     const hintEl = document.getElementById('hint');
     const tagsEl = document.getElementById('stateTags');
     const resetBtn = document.getElementById('resetBtn');
+
+    // NPC refs
+    const npcAvatar = document.getElementById('npcAvatar');
+    const npcLine = document.getElementById('npcLine');
+    const npcAside = document.getElementById('npcAside');
+    const npcFeel = document.getElementById('npcFeel');
 
     const initialTranscript = [
       { who: "Student A (frustrated)", text: "It's not fair! Everyone else got to see the dinosaur exhibit, and I didn't!" },
@@ -145,35 +170,41 @@
       yell: {
         teacher: "Ok, that's enough! You need to stop shouting and behave right now! We have a tour to get through.",
         aftermath: [
+          { who: "Student A (reacts)", text: "That's not fair! You're not listening!" },
           { who: "Narration", text: "After being yelled at, Student A becomes even more frustrated and starts lashing out at others and back at you." }
         ],
         tags: [
           { cls: "bad", text: "Escalation" },
           { cls: "", text: "Emotional safety ↓" }
         ],
-        note: "Raising your voice escalates the situation; the student reacts defensively and the class tension rises."
+        status: { text: "Outcome: Escalation (not recommended in this context)", kind: "bad" },
+        npc: { emoji: "😠", feelClass: "bad", feelText: "Upset", line: "\"Please stop yelling…\"", aside: "Heart rate ↑, fight/flight" }
       },
       separate: {
         teacher: "Alright, let's step aside for a moment to talk. That sounds so frustrating—let's make sure you don't miss out again.",
         aftermath: [
+          { who: "Student A (reacts)", text: "…Okay. Can I still see the dinosaur later?" },
           { who: "Narration", text: "Away from the crowd, Student A feels safer and opens up. The class teasing subsides while you plan a quick path so they don't miss the next exhibit." }
         ],
         tags: [
           { cls: "ok", text: "De-escalation" },
           { cls: "", text: "Emotional safety ↑" }
         ],
-        note: "Private, supportive conversation reduces agitation and restores a sense of fairness."
+        status: { text: "Outcome: De-escalation (recommended)", kind: "ok" },
+        npc: { emoji: "🙂", feelClass: "ok", feelText: "Calmer", line: "\"Thanks for helping me catch up.\"", aside: "Breathing steadies" }
       },
       ignore: {
         teacher: "(You choose to ignore the situation.)",
         aftermath: [
+          { who: "Student A (reacts)", text: "Why is nobody helping me?!" },
           { who: "Narration", text: "Without intervention, teasing continues. Some students shove; Student A becomes more agitated and lashes out." }
         ],
         tags: [
           { cls: "warn", text: "Avoidance" },
           { cls: "bad", text: "Harm risk ↑" }
         ],
-        note: "Inaction allows mockery and physical escalation to grow."
+        status: { text: "Outcome: Avoidance leading to escalation (not recommended)", kind: "bad" },
+        npc: { emoji: "😢", feelClass: "warn", feelText: "Distressed", line: "\"This is getting worse…\"", aside: "Feels unsafe" }
       }
     };
 
@@ -207,8 +238,21 @@
       statusEl.innerHTML = `<div class="tag ${kind}">${text}</div>`;
     }
 
+    function updateNPC({ emoji, feelClass, feelText, line, aside }) {
+      npcAvatar.textContent = emoji;
+      npcFeel.className = `npc-feel tag ${feelClass}`;
+      npcFeel.textContent = feelText;
+      npcLine.textContent = line;
+      npcAside.textContent = aside;
+    }
+
     function renderInitial() {
       clear(logEl); clear(statusEl); setTags([]);
+      npcAvatar.textContent = "😟";
+      npcFeel.className = "npc-feel tag warn";
+      npcFeel.textContent = "Agitated";
+      npcLine.textContent = `"It's not fair! I missed the dinosaur exhibit."`;
+      npcAside.textContent = "Waiting for your response…";
       initialTranscript.forEach(addLine);
       hintEl.textContent = "Choose a teacher response to see what happens.";
     }
@@ -217,36 +261,19 @@
       const action = outcomes[actionKey];
       if (!action) return;
 
-      // Teacher line + aftermath
       addLine({ who: "Teacher", text: action.teacher });
       action.aftermath.forEach(addLine);
       setTags(action.tags);
       hintEl.textContent = "Outcome shown. Use Restart to try another path.";
-      // Status summary
-      const statusMap = {
-        yell: { text: "Outcome: Escalation (not recommended in this context)", kind: "bad" },
-        separate: { text: "Outcome: De-escalation (recommended)", kind: "ok" },
-        ignore: { text: "Outcome: Avoidance leading to escalation (not recommended)", kind: "bad" }
-      };
-      const s = statusMap[actionKey];
-      setStatus(s.text, s.kind);
-
-      // Brief note
-      const note = document.createElement('div');
-      note.className = 'hint';
-      note.style.marginTop = '2px';
-      note.textContent = action.note;
-      statusEl.appendChild(note);
+      setStatus(action.status.text, action.status.kind);
+      updateNPC(action.npc);
     }
 
-    // Wire choices
     document.querySelectorAll('.chip').forEach(chip => {
       chip.addEventListener('click', () => play(chip.dataset.action));
     });
 
     resetBtn.addEventListener('click', renderInitial);
-
-    // Boot
     renderInitial();
   </script>
 </body>
