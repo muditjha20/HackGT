@@ -3,85 +3,57 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Situation 3 — Museum Classroom Scenario (WebXR Fixed)</title>
+  <title>Situation 3 — Museum Classroom Scenario (Web + WebXR in Sync)</title>
   <!-- A-Frame for WebXR -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <style>
     :root {
-      --bg: #0f1115;
-      --panel: #171a21;
-      --text: #e7e9ee;
-      --muted: #9aa3b2;
-      --good: #46d28a;
-      --bad: #ff6b6b;
-      --warn: #f5c451;
-      --card: #13161c;
-      --border: #222736;
-      --radius: 14px;
-      --shadow: 0 8px 28px rgba(0,0,0,.35);
+      --bg: #0f1115; --panel:#171a21; --text:#e7e9ee; --muted:#9aa3b2;
+      --good:#46d28a; --bad:#ff6b6b; --warn:#f5c451; --card:#13161c; --border:#222736;
+      --radius:14px; --shadow:0 8px 28px rgba(0,0,0,.35);
     }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0; background: radial-gradient(1200px 600px at 20% -10%, #182035 0%, #0f1115 60%);
-      color: var(--text); font: 15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
-      min-height: 100svh; display: grid; place-items: center; padding: 24px;
-    }
-    .app {
-      width: 100%; max-width: 920px; background: linear-gradient(180deg, #151a25, #11141a);
-      border: 1px solid var(--border); border-radius: 22px; box-shadow: var(--shadow);
-      padding: 22px; display: grid; gap: 18px; position: relative; z-index: 1;
-    }
-    header {
-      display: flex; align-items: center; justify-content: space-between; gap: 12px;
-      padding: 6px 2px 2px;
-    }
-    .title { font-weight: 600; letter-spacing: .3px; }
-    .meta { color: var(--muted); font-size: 13px; }
-    .stage { display: grid; grid-template-columns: 1.2fr .8fr; gap: 18px; }
-    @media (max-width: 860px) { .stage { grid-template-columns: 1fr; } }
-    .panel {
-      background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 16px; display: grid; gap: 12px; min-height: 260px;
-    }
-    .npc {
-      display: grid; grid-template-columns: 60px 1fr auto; gap: 12px; align-items: center;
-      background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px;
-    }
-    .avatar { width: 60px; height: 60px; border-radius: 50%; display: grid; place-items: center; font-size: 28px; user-select: none; border: 1px solid var(--border); background: #12161e; }
-    .npc-lines { display: grid; gap: 4px; }
-    .npc-name { font-weight: 700; font-size: 14px; }
-    .npc-feel.tag {
-      padding: 6px 10px; border-radius: 8px; font-weight: 700; font-size: 12px;
-      border: 1px solid var(--border); white-space: nowrap;
-    }
-    .ok { color: var(--good); background: rgba(70,210,138,.08); border-color: rgba(70,210,138,.25); }
-    .bad { color: var(--bad); background: rgba(255,107,107,.08); border-color: rgba(255,107,107,.25); }
-    .warn { color: var(--warn); background: rgba(245,196,81,.08); border-color: rgba(245,196,81,.25); }
-    .muted { color: var(--muted); }
-    .log { display: grid; gap: 10px; max-height: 44vh; overflow: auto; scrollbar-width: thin; padding-right: 4px; }
-    .line { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; display: grid; gap: 6px; }
-    .who { font-weight: 600; font-size: 13px; color: var(--muted); }
-    .text { font-size: 15px; }
-    .chiprow { display: flex; flex-wrap: wrap; gap: 8px; }
-    .chip {
-      border: 1px solid var(--border); background: #12161e; color: var(--text);
-      border-radius: 999px; padding: 10px 14px; cursor: pointer; user-select: none;
-      transition: transform .04s ease, border-color .2s ease, background .2s ease;
-      font-weight: 600; font-size: 14px; letter-spacing: .2px;
-    }
-    .chip:hover { transform: translateY(-1px); border-color: #2a3145; }
-    .chip.yell { background: #1b1416; border-color: #3a2026; }
-    .chip.separate { background: #0f1914; border-color: #1f3a2d; }
-    .chip.ignore { background: #1a170e; border-color: #3a2f14; }
-    .status { display: grid; gap: 10px; }
-    .tag { display: inline-block; padding: 6px 10px; border-radius: 8px; font-weight: 700; font-size: 12px; border: 1px solid var(--border); }
-    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .footer { display: flex; align-items: center; justify-content: space-between; color: var(--muted); border-top: 1px dashed #232a3c; padding-top: 10px; margin-top: 4px; }
-    button.reset { border: 1px solid var(--border); background: #121722; color: var(--text); padding: 8px 12px; border-radius: 10px; cursor: pointer; font-weight: 600; }
-    button.reset:hover { border-color: #2a3145; }
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(1200px 600px at 20% -10%,#182035 0%,#0f1115 60%);
+      color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
+      min-height:100svh;display:grid;place-items:center;padding:24px}
+    .app{width:100%;max-width:920px;background:linear-gradient(180deg,#151a25,#11141a);
+      border:1px solid var(--border);border-radius:22px;box-shadow:var(--shadow);
+      padding:22px;display:grid;gap:18px;position:relative;z-index:1}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 2px 2px}
+    .title{font-weight:600;letter-spacing:.3px}.meta{color:var(--muted);font-size:13px}
+    .stage{display:grid;grid-template-columns:1.2fr .8fr;gap:18px}
+    @media (max-width:860px){.stage{grid-template-columns:1fr}}
+    .panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+      padding:16px;display:grid;gap:12px;min-height:260px}
+    .npc{display:grid;grid-template-columns:60px 1fr auto;gap:12px;align-items:center;
+      background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 12px}
+    .avatar{width:60px;height:60px;border-radius:50%;display:grid;place-items:center;font-size:28px;
+      user-select:none;border:1px solid var(--border);background:#12161e}
+    .npc-lines{display:grid;gap:4px}.npc-name{font-weight:700;font-size:14px}
+    .npc-feel.tag{padding:6px 10px;border-radius:8px;font-weight:700;font-size:12px;border:1px solid var(--border);white-space:nowrap}
+    .ok{color:var(--good);background:rgba(70,210,138,.08);border-color:rgba(70,210,138,.25)}
+    .bad{color:var(--bad);background:rgba(255,107,107,.08);border-color:rgba(255,107,107,.25)}
+    .warn{color:var(--warn);background:rgba(245,196,81,.08);border-color:rgba(245,196,81,.25)}
+    .muted{color:var(--muted)}
+    .log{display:grid;gap:10px;max-height:44vh;overflow:auto;scrollbar-width:thin;padding-right:4px}
+    .line{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 12px;display:grid;gap:6px}
+    .who{font-weight:600;font-size:13px;color:var(--muted)}.text{font-size:15px}
+    .chiprow{display:flex;flex-wrap:wrap;gap:8px}
+    .chip{border:1px solid var(--border);background:#12161e;color:var(--text);border-radius:999px;
+      padding:10px 14px;cursor:pointer;user-select:none;transition:transform .04s ease,border-color .2s ease,background .2s ease;
+      font-weight:600;font-size:14px;letter-spacing:.2px}
+    .chip:hover{transform:translateY(-1px);border-color:#2a3145}
+    .chip.yell{background:#1b1416;border-color:#3a2026}
+    .chip.separate{background:#0f1914;border-color:#1f3a2d}
+    .chip.ignore{background:#1a170e;border-color:#3a2f14}
+    .status{display:grid;gap:10px}.tag{display:inline-block;padding:6px 10px;border-radius:8px;font-weight:700;font-size:12px;border:1px solid var(--border)}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .footer{display:flex;align-items:center;justify-content:space-between;color:var(--muted);border-top:1px dashed #232a3c;padding-top:10px;margin-top:4px}
+    button.reset{border:1px solid var(--border);background:#121722;color:var(--text);padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:600}
+    button.reset:hover{border-color:#2a3145}
 
-    /* WebXR canvas behind the UI (desktop) */
-    a-scene { position: fixed; inset: 0; z-index: 0; }
+    /* WebXR canvas behind the UI for desktop */
+    a-scene{position:fixed;inset:0;z-index:0}
   </style>
 </head>
 <body>
@@ -94,70 +66,65 @@
     <!-- Camera + cursor -->
     <a-entity id="cameraRig" position="0 1.6 0">
       <a-entity id="camera" camera look-controls>
-        <a-cursor
-          fuse="true" fuse-timeout="700"
-          material="shader: flat"
-          geometry="primitive: ring; radiusInner: 0.005; radiusOuter: 0.01"
-          position="0 0 -1">
-        </a-cursor>
+        <a-cursor fuse="true" fuse-timeout="700"
+                  material="shader: flat"
+                  geometry="primitive: ring; radiusInner: 0.005; radiusOuter: 0.01"
+                  position="0 0 -1"></a-cursor>
       </a-entity>
     </a-entity>
 
-    <!-- Billboard helper: keep UI facing camera -->
+    <!-- Keep boards facing camera -->
     <script>
-      AFRAME.registerComponent('face-camera', {
-        tick: function () {
-          const cam = this.el.sceneEl.camera;
-          if (!cam) return;
-          const pos = cam.el.object3D.getWorldPosition(new THREE.Vector3());
-          this.el.object3D.lookAt(pos);
-        }
-      });
+      AFRAME.registerComponent('face-camera',{tick:function(){
+        const cam=this.el.sceneEl.camera; if(!cam) return;
+        const v=cam.el.object3D.getWorldPosition(new THREE.Vector3());
+        this.el.object3D.lookAt(v);
+      }});
     </script>
 
-    <!-- VR board with slight z-offsets to avoid z-fighting -->
-    <a-entity id="board" position="0 1.35 -1.6" face-camera>
-      <a-entity geometry="primitive: plane; width: 1.9; height: 1.25"
+    <!-- VR board: SAME CONTENT as 2D (NPC + full transcript + status) -->
+    <a-entity id="board" position="0 1.35 -1.7" face-camera>
+      <a-entity geometry="primitive: plane; width: 2.2; height: 1.6"
                 material="color: #1a2030; opacity: 0.96"></a-entity>
 
-      <!-- Simple emoji face (primitive shapes so it works everywhere) -->
-      <a-circle radius="0.14" color="#24324a" position="-0.78 0.34 0.02"></a-circle>
-      <a-circle radius="0.12" color="#e7e9ee" position="-0.78 0.34 0.025"></a-circle>
-      <a-circle radius="0.012" color="#24324a" position="-0.82 0.36 0.03"></a-circle>
-      <a-circle radius="0.012" color="#24324a" position="-0.74 0.36 0.03"></a-circle>
-      <a-entity geometry="primitive: ring; radiusInner: 0.035; radiusOuter: 0.04; thetaStart: 200; thetaLength: 140"
-                material="color: #24324a" position="-0.78 0.31 0.03"></a-entity>
+      <!-- Emoji face (simple shapes) -->
+      <a-circle id="vrFaceShadow" radius="0.15" color="#24324a" position="-0.95 0.55 0.02"></a-circle>
+      <a-circle id="vrFace" radius="0.13" color="#e7e9ee" position="-0.95 0.55 0.025"></a-circle>
+      <a-circle radius="0.012" color="#24324a" position="-0.985 0.57 0.03"></a-circle>
+      <a-circle radius="0.012" color="#24324a" position="-0.915 0.57 0.03"></a-circle>
+      <a-entity id="vrMouth" geometry="primitive: ring; radiusInner: 0.035; radiusOuter: 0.04; thetaStart: 200; thetaLength: 140"
+                material="color: #24324a" position="-0.95 0.51 0.03"></a-entity>
 
-      <!-- NPC state -->
+      <!-- NPC line + feel -->
       <a-entity id="vrNPC"
-                text="value: Agitated — \"It's not fair! I missed the dinosaur exhibit.\"; align: left; width: 1.5; color: #E7E9EE"
-                position="-0.6 0.38 0.02"></a-entity>
+                text="value: Agitated — &quot;It's not fair! I missed the dinosaur exhibit.&quot;; align: left; width: 1.9; color: #E7E9EE"
+                position="-0.75 0.63 0.03"></a-entity>
 
-      <!-- Short transcript (static) -->
-      <a-entity id="vrTranscript"
-                text="value: B: Maybe you were too slow.\nA: I didn't miss it on purpose!\nC: Maybe pay attention!; align: left; width: 1.7; color: #9AA3B2"
-                position="-0.86 0.08 0.02"></a-entity>
+      <!-- FULL transcript (mirrors 2D log) -->
+      <a-entity id="vrLog"
+                text="value: ; align: left; width: 2.0; color: #9AA3B2; wrapCount: 40"
+                position="-1.05 0.25 0.03"></a-entity>
 
       <!-- Status/outcome -->
       <a-entity id="vrStatus"
-                text="value: Choose a response; align: center; width: 1.8; color: #9AA3B2"
-                position="0 -0.34 0.02"></a-entity>
+                text="value: Choose a response; align: center; width: 2; color: #9AA3B2"
+                position="0 -0.5 0.03"></a-entity>
     </a-entity>
 
-    <!-- VR buttons (clickable) -->
-    <a-entity id="vrButtons" position="0 0.5 -1.6" face-camera>
-      <a-box id="vrYell" class="clickable" depth="0.05" height="0.18" width="0.62" color="#7a2a2a" position="-0.75 0 0"></a-box>
+    <!-- VR buttons -->
+    <a-entity id="vrButtons" position="0 0.35 -1.7" face-camera>
+      <a-box id="vrYell" depth="0.05" height="0.18" width="0.62" color="#7a2a2a" position="-0.75 0 0"></a-box>
       <a-entity text="value: Yell; align: center; width: 1.6; color: white" position="-0.75 0 0.03"></a-entity>
 
-      <a-box id="vrSeparate" class="clickable" depth="0.05" height="0.18" width="0.86" color="#1e4d3d" position="0 0 0"></a-box>
+      <a-box id="vrSeparate" depth="0.05" height="0.18" width="0.86" color="#1e4d3d" position="0 0 0"></a-box>
       <a-entity text="value: Separate; align: center; width: 1.8; color: white" position="0 0 0.03"></a-entity>
 
-      <a-box id="vrIgnore" class="clickable" depth="0.05" height="0.18" width="0.66" color="#6b5a2a" position="0.75 0 0"></a-box>
+      <a-box id="vrIgnore" depth="0.05" height="0.18" width="0.66" color="#6b5a2a" position="0.75 0 0"></a-box>
       <a-entity text="value: Ignore; align: center; width: 1.6; color: white" position="0.75 0 0.03"></a-entity>
     </a-entity>
   </a-scene>
 
-  <!-- Original 2D app UI -->
+  <!-- 2D App -->
   <div class="app" id="app">
     <header>
       <div>
@@ -168,7 +135,6 @@
     </header>
 
     <div class="stage">
-      <!-- Left: NPC + Transcript -->
       <section class="panel" aria-live="polite">
         <div class="npc" id="npcCard">
           <div class="avatar" id="npcAvatar" aria-hidden="true">😟</div>
@@ -187,7 +153,6 @@
         </div>
       </section>
 
-      <!-- Right: Choices -->
       <aside class="panel">
         <div style="font-weight:700">Your options</div>
         <div class="chiprow">
@@ -201,21 +166,7 @@
   </div>
 
   <script>
-    // 2D refs
-    const logEl = document.getElementById('log');
-    const statusEl = document.getElementById('status');
-    const hintEl = document.getElementById('hint');
-    const tagsEl = document.getElementById('stateTags');
-    const resetBtn = document.getElementById('resetBtn');
-    const npcAvatar = document.getElementById('npcAvatar');
-    const npcLine = document.getElementById('npcLine');
-    const npcAside = document.getElementById('npcAside');
-    const npcFeel = document.getElementById('npcFeel');
-
-    // VR refs
-    const vrNPC = document.querySelector('#vrNPC');
-    const vrStatus = document.querySelector('#vrStatus');
-
+    /* ---------- Shared data ---------- */
     const initialTranscript = [
       { who: "Student A (frustrated)", text: "It's not fair! Everyone else got to see the dinosaur exhibit, and I didn't!" },
       { who: "Student B (teasing)",     text: "Maybe you were too slow! You always miss stuff." },
@@ -232,7 +183,7 @@
         ],
         tags: [{ cls: "bad", text: "Escalation" }, { cls: "", text: "Emotional safety ↓" }],
         status: { text: "Outcome: Escalation (not recommended in this context)", kind: "bad" },
-        npc: { emoji: "😠", feelClass: "bad", feelText: "Upset", line: "\"Please stop yelling…\"", aside: "Heart rate ↑, fight/flight" },
+        npc: { emoji: "😠", feelClass: "bad", feelText: "Upset", line: "\"Please stop yelling…\"", aside: "Heart rate ↑, fight/flight", mouth: "down" },
         vrNPC: "Upset — \"Please stop yelling…\""
       },
       separate: {
@@ -243,7 +194,7 @@
         ],
         tags: [{ cls: "ok", text: "De-escalation" }, { cls: "", text: "Emotional safety ↑" }],
         status: { text: "Outcome: De-escalation (recommended)", kind: "ok" },
-        npc: { emoji: "🙂", feelClass: "ok", feelText: "Calmer", line: "\"Thanks for helping me catch up.\"", aside: "Breathing steadies" },
+        npc: { emoji: "🙂", feelClass: "ok", feelText: "Calmer", line: "\"Thanks for helping me catch up.\"", aside: "Breathing steadies", mouth: "smile" },
         vrNPC: "Calmer — \"Thanks for helping me catch up.\""
       },
       ignore: {
@@ -254,99 +205,119 @@
         ],
         tags: [{ cls: "warn", text: "Avoidance" }, { cls: "bad", text: "Harm risk ↑" }],
         status: { text: "Outcome: Avoidance leading to escalation (not recommended)", kind: "bad" },
-        npc: { emoji: "😢", feelClass: "warn", feelText: "Distressed", line: "\"This is getting worse…\"", aside: "Feels unsafe" },
+        npc: { emoji: "😢", feelClass: "warn", feelText: "Distressed", line: "\"This is getting worse…\"", aside: "Feels unsafe", mouth: "flat" },
         vrNPC: "Distressed — \"This is getting worse…\""
       }
     };
 
-    function clear(el) { el.innerHTML = ""; }
+    /* ---------- 2D refs ---------- */
+    const logEl = document.getElementById('log');
+    const statusEl = document.getElementById('status');
+    const hintEl = document.getElementById('hint');
+    const tagsEl = document.getElementById('stateTags');
+    const resetBtn = document.getElementById('resetBtn');
+    const npcAvatar = document.getElementById('npcAvatar');
+    const npcLine = document.getElementById('npcLine');
+    const npcAside = document.getElementById('npcAside');
+    const npcFeel = document.getElementById('npcFeel');
 
-    function addLine({ who, text }) {
-      const div = document.createElement('div');
-      div.className = 'line';
-      const w = document.createElement('div');
-      w.className = 'who';
-      w.textContent = who;
-      const t = document.createElement('div');
-      t.className = 'text';
-      t.textContent = text;
-      div.appendChild(w); div.appendChild(t);
-      logEl.appendChild(div);
-      logEl.scrollTop = logEl.scrollHeight;
+    /* ---------- VR refs ---------- */
+    const vrNPC = document.getElementById('vrNPC');
+    const vrStatus = document.getElementById('vrStatus');
+    const vrLog = document.getElementById('vrLog');
+    const vrFace = document.getElementById('vrFace');
+    const vrMouth = document.getElementById('vrMouth');
+
+    /* ---------- Helpers ---------- */
+    function clear(el){el.innerHTML='';}
+    function addLine({who,text}){
+      // 2D line
+      const div=document.createElement('div'); div.className='line';
+      const w=document.createElement('div'); w.className='who'; w.textContent=who;
+      const t=document.createElement('div'); t.className='text'; t.textContent=text;
+      div.appendChild(w); div.appendChild(t); logEl.appendChild(div);
+      logEl.scrollTop=logEl.scrollHeight;
+      // also push to VR mirror buffer
+      _vrBuffer.push(`${who}: ${text}`);
+      syncVRLog();
     }
-
-    function setTags(list) {
+    function setTags(list){
       clear(tagsEl);
-      list.forEach(({ cls, text }) => {
-        const span = document.createElement('span');
-        span.className = `tag ${cls}`;
-        span.textContent = text;
-        tagsEl.appendChild(span);
+      list.forEach(({cls,text})=>{
+        const span=document.createElement('span'); span.className=`tag ${cls}`; span.textContent=text; tagsEl.appendChild(span);
       });
     }
-
-    function setStatus(text, kind="") {
-      statusEl.innerHTML = `<div class="tag ${kind}">${text}</div>`;
-      // Mirror to VR (color hint only)
-      vrStatus.setAttribute('text', `value: ${text}; align: center; width: 1.8; color: ${kind==='ok'?'#46D28A':'#FF6B6B'}`);
+    function setStatus(text,kind=''){
+      statusEl.innerHTML=`<div class="tag ${kind}">${text}</div>`;
+      vrStatus.setAttribute('text',`value: ${text}; align: center; width: 2; color: ${kind==='ok'?'#46D28A':'#FF6B6B'}`);
     }
-
-    function updateNPC({ emoji, feelClass, feelText, line, aside }, vrText) {
-      // 2D UI
-      npcAvatar.textContent = emoji;
-      npcFeel.className = `npc-feel tag ${feelClass}`;
-      npcFeel.textContent = feelText;
-      npcLine.textContent = line;
-      npcAside.textContent = aside;
-
-      // VR: update face color (happy/neutral/alert) by tinting the inner circle
-      const scene = document.querySelector('a-scene');
-      const innerFace = scene.querySelector('a-circle[color="#e7e9ee"]');
-      if (innerFace) {
-        const tint = (feelClass === 'ok') ? '#dff7ea' : (feelClass === 'bad') ? '#ffdddd' : '#e7e9ee';
-        innerFace.setAttribute('color', tint);
+    function updateNPC2D({emoji,feelClass,feelText,line,aside}){
+      npcAvatar.textContent=emoji;
+      npcFeel.className=`npc-feel tag ${feelClass}`;
+      npcFeel.textContent=feelText;
+      npcLine.textContent=line;
+      npcAside.textContent=aside;
+    }
+    function updateNPCVR(vrText,feelClass,mouth){
+      // text
+      vrNPC.setAttribute('text',`value: ${vrText}; align: left; width: 1.9; color: #E7E9EE`);
+      // face tint + mouth
+      const tint = (feelClass==='ok') ? '#dff7ea' : (feelClass==='bad') ? '#ffdddd' : '#e7e9ee';
+      vrFace.setAttribute('color',tint);
+      if(mouth==='smile'){
+        vrMouth.setAttribute('geometry','primitive: ring; radiusInner: 0.03; radiusOuter: 0.04; thetaStart: 200; thetaLength: 140');
+      }else if(mouth==='down'){
+        vrMouth.setAttribute('geometry','primitive: ring; radiusInner: 0.03; radiusOuter: 0.04; thetaStart: 20; thetaLength: 140');
+      }else{
+        vrMouth.setAttribute('geometry','primitive: ring; radiusInner: 0.035; radiusOuter: 0.035; thetaStart: 0; thetaLength: 360');
       }
-      vrNPC.setAttribute('text', `value: ${vrText}; align: left; width: 1.5; color: #E7E9EE`);
     }
 
-    function renderInitial() {
-      clear(logEl); clear(statusEl); setTags([]);
-      npcAvatar.textContent = "😟";
-      npcFeel.className = "npc-feel tag warn";
-      npcFeel.textContent = "Agitated";
-      npcLine.textContent = `"It's not fair! I missed the dinosaur exhibit."`;
-      npcAside.textContent = "Waiting for your response…";
+    // VR transcript buffer (the 2D log is DOM; this mirrors it as text)
+    const _vrBuffer=[];
+    function syncVRLog(){
+      // join with blank lines for readability; wrapCount handled by width
+      const s=_vrBuffer.join('\n\n');
+      vrLog.setAttribute('text',`value: ${s}; align: left; width: 2.0; color: #9AA3B2; wrapCount: 44`);
+    }
+
+    function renderInitial(){
+      // reset 2D
+      clear(logEl); clear(statusEl); setTags([]); _vrBuffer.length=0;
+      updateNPC2D({emoji:"😟",feelClass:"warn",feelText:"Agitated",line:`"It's not fair! I missed the dinosaur exhibit."`,aside:"Waiting for your response…"});
+      // fill initial transcript both 2D and VR
       initialTranscript.forEach(addLine);
+      hintEl.textContent="Choose a teacher response to see what happens.";
+
       // VR initial
-      vrNPC.setAttribute('text', 'value: Agitated — "It\'s not fair! I missed the dinosaur exhibit."; align: left; width: 1.5; color: #E7E9EE');
-      vrStatus.setAttribute('text', 'value: Choose a response; align: center; width: 1.8; color: #9AA3B2');
+      vrNPC.setAttribute('text','value: Agitated — "It\'s not fair! I missed the dinosaur exhibit."; align: left; width: 1.9; color: #E7E9EE');
+      vrStatus.setAttribute('text','value: Choose a response; align: center; width: 2; color: #9AA3B2');
+      updateNPCVR('Agitated — "It\'s not fair! I missed the dinosaur exhibit."', 'warn', 'flat');
+      syncVRLog();
     }
 
-    function play(actionKey) {
-      const action = outcomes[actionKey];
-      if (!action) return;
-
-      addLine({ who: "Teacher", text: action.teacher });
+    function play(actionKey){
+      const action=outcomes[actionKey]; if(!action) return;
+      addLine({who:"Teacher",text:action.teacher});
       action.aftermath.forEach(addLine);
       setTags(action.tags);
-      setStatus(action.status.text, action.status.kind);
-      updateNPC(action.npc, action.vrNPC);
+      hintEl.textContent="Outcome shown. Use Restart to try another path.";
+      setStatus(action.status.text,action.status.kind);
+      updateNPC2D(action.npc);
+      updateNPCVR(action.vrNPC, action.npc.feelClass, action.npc.mouth);
     }
 
-    // 2D clicks
-    document.querySelectorAll('.chip').forEach(chip => {
-      chip.addEventListener('click', () => play(chip.dataset.action));
+    // 2D chips
+    document.querySelectorAll('.chip').forEach(chip=>{
+      chip.addEventListener('click',()=>play(chip.dataset.action));
     });
 
-    // VR clicks (boxes are clickable via cursor fuse or controller ray)
-    const vrYell = document.querySelector('#vrYell');
-    const vrSeparate = document.querySelector('#vrSeparate');
-    const vrIgnore = document.querySelector('#vrIgnore');
-    vrYell.addEventListener('click', () => play('yell'));
-    vrSeparate.addEventListener('click', () => play('separate'));
-    vrIgnore.addEventListener('click', () => play('ignore'));
+    // VR buttons (gaze click / controller)
+    document.getElementById('vrYell').addEventListener('click',()=>play('yell'));
+    document.getElementById('vrSeparate').addEventListener('click',()=>play('separate'));
+    document.getElementById('vrIgnore').addEventListener('click',()=>play('ignore'));
 
-    resetBtn.addEventListener('click', renderInitial);
+    document.getElementById('resetBtn').addEventListener('click',renderInitial);
     renderInitial();
   </script>
 </body>
