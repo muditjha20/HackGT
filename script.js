@@ -34,17 +34,17 @@ const SCENARIO = {
       name: 'Round 1 — Angry refund request',
       npc_line:
 `You are working at the gift shop. The next customer in line comes up to you, furious that his mug was chipped.
-Him: “I can’t believe you’d sell something like this in a museum gift shop. What a rip-off!”
-You: *pause* “Sorry to hear that. Let me check if we have another one.”
-Him: “Oh come on! I already waste so much money at these gift shops after waiting so long to get to the front, and now I gotta wait even longer while you go and check?! Do you even care about your customers??”`,
+Him: "I can't believe you'd sell something like this in a museum gift shop. What a rip-off!"
+You: *pause* "Sorry to hear that. Let me check if we have another one."
+Him: "Oh come on! I already waste so much money at these gift shops after waiting so long to get to the front, and now I gotta wait even longer while you go and check?! Do you even care about your customers??"`,
       options: [
-        { label: "“Hey calm down bruh. It’s just a very small chip, and not very noticeable either. Let me go check and get back to you.”",
+        { label: "Hey calm down bruh. It's just a very small chip, and not very noticeable either. Let me go check and get back to you.",
           tag: "DISMISSIVE", effect: "ESCALATE",
           good: [], bad: ["calm down","small chip","not very","bruh","chill"] },
-        { label: "“I’m really sorry about that! I completely understand how frustrating this is, I can get you a refund or replace the mug, whichever works best for you.”",
+        { label: "I'm really sorry about that! I completely understand how frustrating this is, I can get you a refund or replace the mug, whichever works best for you.",
           tag: "EMPATHY_SOLVE", effect: "DEESCALATE",
           good: ["sorry","understand","refund","replace","whichever"], bad: [] },
-        { label: "“Mm, stop whining like a child and please get out of here. Don't you see the board? It clearly says NO REFUNDS.”",
+        { label: "Mm, stop whining like a child and please get out of here. Don't you see the board? It clearly says NO REFUNDS.",
           tag: "INSULT_POLICY", effect: "ESCALATE",
           good: [], bad: ["whining","child","no refunds","get out"] }
       ],
@@ -56,15 +56,15 @@ Him: “Oh come on! I already waste so much money at these gift shops after wait
     },
     {
       name: 'Round 2 — Offer clear paths',
-      npc_line: "Customer: “So what are you actually going to do about it?”",
+      npc_line: "Customer: 'So what are you actually going to do about it?'",
       options: [
-        { label: "“Here are two options: a full refund right now, or I can replace it in under two minutes—your choice.”",
+        { label: "Here are two options: a full refund right now, or I can replace it in under two minutes—your choice.",
           tag: "CHOICE_CLEAR", effect: "DEESCALATE",
           good: ["refund right now","replace","two minutes","your choice"], bad: [] },
-        { label: "“Policy says exchanges only—no exceptions.”",
+        { label: "Policy says exchanges only—no exceptions.",
           tag: "POLICY_ONLY", effect: "NEUTRAL",
           good: ["exchange"], bad: ["no exceptions","policy says"] },
-        { label: "“Maybe look before you buy next time.”",
+        { label: "Maybe look before you buy next time.",
           tag: "BLAME", effect: "ESCALATE",
           good: [], bad: ["look before you buy","your fault"] }
       ],
@@ -76,15 +76,15 @@ Him: “Oh come on! I already waste so much money at these gift shops after wait
     },
     {
       name: 'Round 3 — Close it safely',
-      npc_line: "Customer: “Can we just finish this?”",
+      npc_line: "Customer: 'Can we just finish this?'",
       options: [
-        { label: "“Absolutely. I'll process that now and throw in a protective wrap. Thanks for letting me fix it.”",
+        { label: "Absolutely. I'll process that now and throw in a protective wrap. Thanks for letting me fix it.",
           tag: "CLOSE_WITH_THANKS", effect: "DEESCALATE",
           good: ["process now","protective wrap","thanks"], bad: [] },
-        { label: "“Let's step to the side counter so I can finish this without holding up the line.”",
+        { label: "Let's step to the side counter so I can finish this without holding up the line.",
           tag: "MOVE_ASIDE", effect: "DEESCALATE",
           good: ["step to the side","without holding up the line"], bad: [] },
-        { label: "“Keep yelling and I'll refuse service.”",
+        { label: "Keep yelling and I'll refuse service.",
           tag: "THREAT_REFUSE", effect: "ESCALATE",
           good: [], bad: ["refuse service","keep yelling"] }
       ],
@@ -98,9 +98,9 @@ Him: “Oh come on! I already waste so much money at these gift shops after wait
       name: 'Aftercare — Reset & self-check',
       npc_line: "(The situation is settled. Take a breath. Note one thing you did well and one improvement.)",
       options: [
-        { label: "“Thanks for your patience—have a good rest of your visit.”", tag: "AFTERCARE", effect: "DEESCALATE", good: ["thanks","patience"], bad: [] },
-        { label: "“If anything else comes up, I'm right here.”", tag: "AFTERCARE", effect: "DEESCALATE", good: ["right here"], bad: [] },
-        { label: "“Next!” (ignore the customer while they finish)", tag: "AFTERCARE_BAD", effect: "ESCALATE", good: [], bad: ["next!"] }
+        { label: "Thanks for your patience—have a good rest of your visit.", tag: "AFTERCARE", effect: "DEESCALATE", good: ["thanks","patience"], bad: [] },
+        { label: "If anything else comes up, I'm right here.", tag: "AFTERCARE", effect: "DEESCALATE", good: ["right here"], bad: [] },
+        { label: "Next! (ignore the customer while they finish)", tag: "AFTERCARE_BAD", effect: "ESCALATE", good: [], bad: ["next!"] }
       ],
       replies: {
         STRONG:   ["(Customer nods, leaves.)", "(Customer softens, walks off.)", "Thanks."],
@@ -364,8 +364,8 @@ function endGame(){
   const last = S.path[S.path.length-1] || {};
   const title = win ? '✅ You resolved it professionally.' : '⚠️ Try an empathic, concrete fix next time.';
   const good  = win ? 'What worked:\n• Empathy + clear choices (refund/replace).\n• No minimizing, no insults.\n• Kept voice steady.' :
-                      'Try this:\n• Start with empathy ("I'm sorry… I understand").\n• Offer concrete options you can deliver.\n• Avoid "calm down", labels, threats.';
-  const better = '"I'm really sorry this happened—refund or replace, your choice."\n"Let's step to the side so I can fix this quickly."';
+                      'Try this:\n• Start with empathy ("I\'m sorry… I understand").\n• Offer concrete options you can deliver.\n• Avoid "calm down", labels, threats.';
+  const better = '"I\'m really sorry this happened—refund or replace, your choice."\n"Let\'s step to the side so I can fix this quickly."';
 
   // Keep the HUD visible; show the card as an overlay (also HUD)
   feedback.setAttribute('visible', true);
@@ -443,7 +443,7 @@ function wrap(ctx, text, width){
   for (const w of words){ const t=line? line+' '+w : w; if (ctx.measureText(t).width>width){ if(line) lines.push(line); line=w; } else line=t; }
   if (line) lines.push(line); return lines;
 }
-function stripQuotes(s){ return (s||'').replace(/^“|”$/g,'').replace(/^.*?:\s*/,''); }
+function stripQuotes(s){ return (s||'').replace(/^"|"$/g,'').replace(/^.*?:\s*/,''); }
 
 // -------- Reset & Init --------
 function resetAll(){
@@ -453,8 +453,38 @@ function resetAll(){
   showRound();
 }
 
-document.addEventListener('DOMContentLoaded', ()=>{
-  setTimeout(()=> { $('#loadingScreen').style.display='none'; showRound(); }, 700);
-});
+// Fixed initialization - wait for A-Frame to be ready
+function init() {
+  const scene = document.querySelector('a-scene');
+  
+  if (scene.hasLoaded) {
+    hideLoadingScreen();
+  } else {
+    scene.addEventListener('loaded', hideLoadingScreen);
+  }
+  
+  // Fallback timeout in case the scene doesn't load properly
+  setTimeout(hideLoadingScreen, 3000);
+}
+
+function hideLoadingScreen() {
+  const loadingScreen = $('#loadingScreen');
+  if (loadingScreen) {
+    loadingScreen.style.display = 'none';
+    showRound();
+  }
+}
+
+// Use A-Frame's ready event instead of DOMContentLoaded
+document.addEventListener('DOMContentLoaded', init);
+
+// Also listen for A-Frame specific events
+const scene = document.querySelector('a-scene');
+if (scene) {
+  scene.addEventListener('loaded', () => {
+    console.log('A-Frame scene loaded');
+    hideLoadingScreen();
+  });
+}
 
 // ===============================
