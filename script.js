@@ -1,410 +1,733 @@
-// ===============================
-// Bystander Coach — Expressive NPC + Solid Logic
-// ===============================
-
-// ---------- Scenario with context-specific options ----------
-const SCENARIO = {
-  rounds: [
-    {
-      name: 'Round 1 — Set a boundary',
-      npc_line: "Move. That’s my seat — now.",
-      options: [
-        { label: "Direct: “That’s not okay. Please stop.”", tag: "DIRECT",
-          good: ["not okay","please stop","stop"], bad: ["idiot","shut up","stupid"] },
-        { label: "Distract: “Hey—can you help me with the next stop?”", tag: "DISTRACT",
-          good: ["help me","next stop","what stop"], bad: [] },
-        { label: "Delegate: “Driver, can you assist—there’s a situation here.”", tag: "DELEGATE",
-          good: ["driver","assist","help"], bad: [] }
-      ],
-      branches: {
-        STRONG:   { react: "…Whatever. Just saying.", outcome: "cooling" },
-        NEUTRAL:  { react: "Mind your business.",     outcome: "stall"   },
-        ESCALATE: { react: "You wanna go?",           outcome: "escalate"}
-      }
+// Enhanced scenario with more realistic dialogue and interactions
+const SCENARIO_BUS_V1 = {
+    turn1: {
+        npc_line: "Hey! I paid my fare! This machine is broken and you're trying to cheat me!",
+        passenger_line: "Hey! I paid my fare! This machine is broken and you're trying to cheat me!",
+        driver_line: "Sir, the machine is working fine. Please step back and let other passengers board.",
+        good_keywords: ["calm", "help", "understand", "issue", "problem", "assist", "check"],
+        bad_keywords: ["shut up", "idiot", "stupid", "liar", "cheat", "sue", "fight"],
+        branches: {
+            STRONG: {
+                npc_react: "The passenger takes a breath and explains more calmly: 'Okay, look, I swiped my card three times already.'",
+                outcome: "cooling"
+            },
+            NEUTRAL: {
+                npc_react: "The passenger scowls but lowers their voice slightly: 'Whatever, just drive the bus.'",
+                outcome: "stall"
+            },
+            ESCALATE: {
+                npc_react: "The passenger turns toward you aggressively: 'Who asked you? Mind your own business!'",
+                outcome: "escalate"
+            }
+        }
     },
-    {
-      name: 'Round 2 — Hold ground briefly',
-      npc_line: "Why do you care?",
-      options: [
-        { label: "Direct (short): “Everyone deserves respect.”",  tag: "DIRECT",
-          good: ["respect","deserves"], bad: ["loser","stupid"] },
-        { label: "De-escalate: “We’re just riding. Let them be.”", tag: "DEESC",
-          good: ["let them be","we're just riding"], bad: [] },
-        { label: "Delegate: “Driver, we need help here.”",         tag: "DELEGATE",
-          good: ["driver","help"], bad: [] }
-      ],
-      branches: {
-        STRONG:   { react: "Fine.",       outcome: "cooling" },
-        NEUTRAL:  { react: "Whatever.",   outcome: "stall"   },
-        ESCALATE: { react: "Back off!",   outcome: "escalate"}
-      }
-    },
-    {
-      name: 'Round 3 — Exit/support',
-      npc_line: "Tch.",
-      options: [
-        { label: "Support target: “We’re here—want to sit up front?”", tag: "SUPPORT",
-          good: ["we're here","want to sit","need a seat"], bad: [] },
-        { label: "Move group: “Let’s grab those seats over there.”", tag: "MOVE",
-          good: ["over there","grab seats"], bad: [] },
-        { label: "Reset: “Let’s give space.”", tag: "RESET",
-          good: ["give space"], bad: [] }
-      ],
-      branches: {
-        STRONG:   { react: "…Okay.", outcome: "cooling" },
-        NEUTRAL:  { react: "Tss.",   outcome: "stall"   },
-        ESCALATE: { react: "Huh.",   outcome: "stall"   }
-      }
-    },
-    // Aftercare (Delay)
-    {
-      name: 'Aftercare — Check on the person',
-      npc_line: "(Aggressor is quiet; check in with the person.)",
-      options: [
-        { label: "“Are you alright?”",                tag: "AFTERCARE", good: ["are you alright","are you okay"], bad: [] },
-        { label: "“Want me to stay with you?”",      tag: "AFTERCARE", good: ["stay with you","stay"], bad: [] },
-        { label: "“Prefer to move seats?”",          tag: "AFTERCARE", good: ["move seats"], bad: [] }
-      ],
-      branches: {
-        STRONG:   { react: "Thank you.", outcome: "cooling" },
-        NEUTRAL:  { react: "Okay.",      outcome: "cooling" },
-        ESCALATE: { react: "—",          outcome: "cooling" }
-      }
+    turn2: {
+        npc_line: "Why are you getting involved? This is between me and the driver!",
+        passenger_line: "Why are you getting involved? This is between me and the driver!",
+        driver_line: "Please everyone, remain calm. We can sort this out.",
+        good_keywords: ["peace", "safe", "respect", "everyone", "understand", "help", "resolve"],
+        bad_keywords: ["back off", "threaten", "yell", "police", "fight", "stupid", "shut up"],
+        branches: {
+            STRONG: {
+                npc_react: "The passenger sighs and sits down: 'Fine, fine. I'll just take a seat. This isn't worth it.'",
+                outcome: "cooling"
+            },
+            NEUTRAL: {
+                npc_react: "The passenger mutters under their breath but stops confronting the driver directly.",
+                outcome: "stall"
+            },
+            ESCALATE: {
+                npc_react: "The passenger gets in your face: 'You want trouble? I'll give you trouble!'",
+                outcome: "escalate"
+            }
+        }
     }
-  ],
-  tips: [
-    "One short sentence beats a speech.",
-    "Address behavior, not identity.",
-    "Keep volume steady; avoid insults.",
-    "If unsafe, prefer Delegating/Moving."
-  ]
 };
 
-// ---------- State ----------
-const S = {
-  round: 0,
-  mood: 0,                // -3 hostile … +3 calm
-  lastTone: 'ASSERTIVE',
-  lastText: '',
-  path: [],
-  mic: { stream:null, ctx:null, analyser:null, buf:null }
+// App state with enhanced tracking
+let appState = {
+    currentTurn: 1,
+    micEnabled: false,
+    audioContext: null,
+    analyser: null,
+    mediaStream: null,
+    recognition: null,
+    isListening: false,
+    gameData: {
+        turn1: { response: "", tone: "", branch: "" },
+        turn2: { response: "", tone: "", branch: "" }
+    },
+    npcAnimations: {
+        angry: { rotation: { from: "0 0 -10", to: "0 0 10", dur: 500 } },
+        calm: { rotation: { from: "0 0 -2", to: "0 0 2", dur: 2000 } }
+    }
 };
 
-// ---------- DOM / A-Frame refs ----------
-const $ = (s)=>document.querySelector(s);
-const subtitle = $('#subtitle');
-const youSaid  = $('#youSaid');
-const feedbackCard = $('#feedbackCard');
-const cardTitle = $('#cardTitle');
-const cardBody  = $('#cardBody');
+// DOM elements
+const loadingScreen = document.getElementById('loadingScreen');
+const micPermissionBtn = document.getElementById('micPermission');
+const micStatus = document.getElementById('micStatus');
+const hint = document.getElementById('hint');
+const subtitle = document.getElementById('subtitle');
+const responseButtons = document.getElementById('responseButtons');
+const voiceInputSection = document.getElementById('voiceInputSection');
+const speakNowBtn = document.getElementById('speakNowBtn');
+const transcript = document.getElementById('transcript');
+const feedbackCard = document.getElementById('feedbackCard');
+const feedbackResponse = document.getElementById('feedbackResponse');
+const feedbackTone = document.getElementById('feedbackTone');
+const feedbackPositive = document.getElementById('feedbackPositive');
+const feedbackSuggestion = document.getElementById('feedbackSuggestion');
+const feedbackBetterLine = document.getElementById('feedbackBetterLine');
+const saveCardBtn = document.getElementById('saveCardBtn');
+const replayBtn = document.getElementById('replayBtn');
+const exportCanvas = document.getElementById('exportCanvas');
+const ctx = exportCanvas.getContext('2d');
+const angryPassenger = document.getElementById('angryPassenger');
+const busDriver = document.getElementById('busDriver');
+const passengerBubble = document.getElementById('passengerBubble');
+const driverBubble = document.getElementById('driverBubble');
+const passengerText = document.getElementById('passengerText');
+const driverText = document.getElementById('driverText');
 
-const micPermissionBtn = $('#micPermission');
-const micStatus = $('#micStatus');
-const speakBtn2D = document.createElement('button'); // simple desktop helper if wanted
-
-const npcAgg = $('#npcAggressor');
-const npcDrv = $('#npcDriver');
-const hoverDot = $('#hoverDot');
-
-const opt1 = $('#opt1'), opt2 = $('#opt2'), opt3 = $('#opt3');
-const opt1text = $('#opt1text'), opt2text = $('#opt2text'), opt3text = $('#opt3text');
-
-// ========= NPC expression helpers (RobotExpressive) =========
-let aggMesh = null, aggMorphDict = null, aggMorph = null; // morph target control
-
-npcAgg.addEventListener('model-loaded', () => {
-  const mesh = npcAgg.getObject3D('mesh');
-  if (!mesh) return;
-  // Walk the tree to find a skinned mesh with morphTargets
-  mesh.traverse(node => {
-    if (node.morphTargetInfluences && node.morphTargetDictionary) {
-      aggMesh = node;
-      aggMorphDict = node.morphTargetDictionary;
-      aggMorph = node.morphTargetInfluences;
-    }
-  });
-  setAggExpression('angry', 0.9); // start tense
-});
-
-// map emotions -> try to find a matching morph target by (case-insensitive) name
-function setAggExpression(kind='neutral', strength=0.7) {
-  if (!aggMesh || !aggMorphDict || !aggMorph) return;
-
-  // zero all first
-  for (let i=0;i<aggMorph.length;i++) aggMorph[i]=0;
-
-  const find = (needleArr)=>{
-    const names = Object.keys(aggMorphDict);
-    for (const n of names) {
-      const low = n.toLowerCase();
-      for (const k of needleArr) if (low.includes(k)) return aggMorphDict[n];
-    }
-    return null;
-  };
-
-  let key = null;
-  if (kind==='angry')    key = find(['angry','frown','mad']);
-  else if (kind==='happy')   key = find(['happy','smile']);
-  else if (kind==='sad')     key = find(['sad']);
-  else if (kind==='surprised') key = find(['surpris','shock']);
-  else if (kind==='neutral')   key = null;
-
-  if (key!=null) aggMorph[key] = strength;
-}
-
-// quick gesture via rotation animation-mixer fallback
-function playAggClip(name, dur=1000){
-  // RobotExpressive has clips like Idle/Walk/Run/Jump/Yes/No/Wave/Dance (varies by version)
-  npcAgg.setAttribute('animation-mixer', `clip: ${name}; loop: once; clampWhenFinished: true`);
-  setTimeout(()=> npcAgg.setAttribute('animation-mixer', 'clip: Idle; loop: repeat'), dur+200);
-}
-
-// move NPC a bit (closer/farther)
-function moveAggTo(z = -1.6, dur=600){
-  npcAgg.setAttribute('animation__move', `property: position; to: 0 0 ${z}; dur: ${dur}; easing: easeOutQuad`);
-}
-
-// Driver brief “speak” gesture
-function driverConcern(){
-  npcDrv.setAttribute('animation__nod', 'property: rotation; to: -6 150 0; dir: alternate; dur: 160; loop: 4; easing: easeInOutQuad');
-  setTimeout(()=> npcDrv.removeAttribute('animation__nod'), 900);
-}
-
-// ---------- Mic & tone ----------
-async function enableMic(){
-  if (S.mic.stream) return true;
-  try{
-    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-    const ctx = new (window.AudioContext||window.webkitAudioContext)();
-    const src = ctx.createMediaStreamSource(stream);
-    const analyser = ctx.createAnalyser(); analyser.fftSize = 2048;
-    src.connect(analyser);
-    S.mic = { stream, ctx, analyser, buf: new Float32Array(analyser.fftSize) };
-    micStatus.textContent = 'Microphone: Enabled';
-    return true;
-  }catch(e){
-    micStatus.textContent = 'Microphone: Access Denied';
-    return false;
-  }
-}
-
-function measureTone(ms=1000){
-  return new Promise(res=>{
-    if (!S.mic.analyser){ res({bucket:'ASSERTIVE'}); return; }
-    const {analyser, buf} = S.mic;
-    const t0 = performance.now();
-    let frames=0, sumAbs=0, pace=0, prev=0;
-    (function loop(){
-      analyser.getFloatTimeDomainData(buf);
-      let abs=0;
-      for (let i=0;i<buf.length;i++){ const v=buf[i]; abs+=Math.abs(v); pace+=Math.abs(v-prev); prev=v; }
-      sumAbs += abs/buf.length; frames++;
-      if (performance.now()-t0 < ms) requestAnimationFrame(loop);
-      else {
-        const rms = (sumAbs/frames)||0, paceNorm = pace/(frames*buf.length);
-        let bucket='CALM'; if (rms>0.6 || paceNorm>0.008) bucket='AGGRESSIVE'; else if (rms>=0.25) bucket='ASSERTIVE';
-        res({bucket});
-      }
-    })();
-  });
-}
-
-// optional desktop STT (Quest often lacks it)
-function runSTT(timeoutMs=1400){
-  return new Promise(resolve=>{
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR){ resolve(''); return; }
-    const r = new SR(); r.lang='en-US'; r.interimResults=false; r.maxAlternatives=1;
-    let done=false; const t = setTimeout(()=>{ if(!done){done=true; r.stop(); resolve(''); } }, timeoutMs+400);
-    r.onresult = e=>{ if(done) return; done=true; clearTimeout(t); resolve(e.results[0][0].transcript||''); };
-    r.onerror = ()=>{ if(!done){done=true; clearTimeout(t); resolve(''); } };
-    r.onend   = ()=>{ if(!done){done=true; clearTimeout(t); resolve(''); } };
-    r.start(); setTimeout(()=> r.stop(), timeoutMs);
-  });
-}
-
-// ---------- Scoring, mood, and reactions ----------
-function score(turn, text, tone){
-  const t = (text||'').toLowerCase();
-  const hasGood = turn.options.some(o => (o.good||[]).some(k => t.includes(k)));
-  const hasBad  = turn.options.some(o => (o.bad ||[]).some(k => t.includes(k)));
-  if (hasGood && tone!=='AGGRESSIVE') return 'STRONG';
-  if (hasBad  || tone==='AGGRESSIVE') return 'ESCALATE';
-  return 'NEUTRAL';
-}
-function adjustMood(branch){
-  if (branch==='STRONG') S.mood = Math.min(3, S.mood+1);
-  if (branch==='ESCALATE') S.mood = Math.max(-3, S.mood-1);
-  // visuals:
-  if (S.mood<=-1){ setAggExpression('angry', 0.9); moveAggTo(-1.25, 300); }
-  else if (S.mood>=2){ setAggExpression('happy', 0.6); moveAggTo(-1.9, 400); }
-  else { setAggExpression('neutral', 0.0); moveAggTo(-1.6, 300); }
-}
-
-function setSubtitle(v){ subtitle.setAttribute('text','value', v); }
-function setYou(v){ youSaid.setAttribute('text','value', v? `You: ${v}` : ''); }
-
-function labelOptions(round){
-  const [o1,o2,o3] = round.options;
-  opt1text.setAttribute('text','value', o1.label);
-  opt2text.setAttribute('text','value', o2.label);
-  opt3text.setAttribute('text','value', o3.label);
-}
-
-// ---------- Flow ----------
-function showRound(){
-  const round = SCENARIO.rounds[S.round];
-  setSubtitle(`${round.name}\n${round.npc_line}`);
-  setYou('');
-  labelOptions(round);
-
-  // Actor behavior cue
-  if (S.round===0){
-    setAggExpression('angry', 0.9); playAggClip('No', 900); moveAggTo(-1.25, 400); driverConcern();
-  } else if (S.round===1){
-    playAggClip('Idle', 600);
-  } else if (S.round===2){
-    playAggClip('Yes', 600);
-  } else {
-    // aftercare: calm
-    setAggExpression('happy', 0.5); playAggClip('Wave', 1000); moveAggTo(-1.9, 600);
-  }
-}
-
-// apply response (either from button or voice)
-function applyResponse(text, chosenTag){
-  const round = SCENARIO.rounds[S.round];
-  const tone = S.mic.stream ? S.lastTone : 'ASSERTIVE';
-  const branch = score(round, text || chosenTag || '', tone);
-  const react = round.branches[branch];
-  setYou(text ? `${text}  (${tone})` : `${chosenTag}  (${tone})`);
-
-  // Aggressor reaction
-  if (branch==='ESCALATE'){ playAggClip('No', 900); setAggExpression('angry', 1.0); moveAggTo(-1.1, 300); }
-  if (branch==='STRONG'){   playAggClip('Yes', 900); setAggExpression('neutral', 0.0); moveAggTo(-1.8, 400); }
-  if (branch==='NEUTRAL'){  setAggExpression('neutral', 0.1); }
-
-  setSubtitle(react.react);
-  S.path.push({ round:S.round, branch, outcome:react.outcome, tone, text:text||chosenTag||'' });
-  adjustMood(branch);
-
-  const wait = 900 + (S.mood<0 ? 500 : 200);
-  setTimeout(()=>{
-    if (S.round >= SCENARIO.rounds.length - 1) endGame();
-    else { S.round++; showRound(); }
-  }, wait);
-}
-
-function endGame(){
-  const win = S.path.some(p=>p.outcome==='cooling');
-  const title = win ? '✅ You cooled it down.' : '⚠️ Let’s improve that boundary.';
-  const last = S.path[S.path.length-1] || {};
-  const good  = win ? 'What worked:\n• Short, clear boundary.\n• No labels/insults.\n• Steady tone.'
-                    : 'Try this:\n• One sentence boundary.\n• Behavior, not identity.\n• Lower volume; slow pace.';
-  const better = '“That’s not okay. Please stop.”\n“We’re just riding; let them be.”';
-
-  $('#uiPanel').setAttribute('visible','false');
-  feedbackCard.setAttribute('visible', true);
-  feedbackCard.setAttribute('animation__in','property: scale; from: 0 0 0; to: 1 1 1; dur: 600; easing: easeOutBack');
-
-  cardTitle.setAttribute('text','value', title);
-  cardBody.setAttribute('text','value',
-    `Last response: “${last.text||'—'}”\nTone: ${last.tone||S.lastTone}\n\n${good}\n\nBetter lines:\n${better}`);
-}
-
-function resetAll(){
-  S.round = 0; S.mood = 0; S.lastTone='ASSERTIVE'; S.lastText=''; S.path=[];
-  $('#uiPanel').setAttribute('visible','true');
-  feedbackCard.setAttribute('visible', false);
-  feedbackCard.removeAttribute('animation__in');
-  showRound();
-}
-
-// ---------- Click binding ----------
-function bindClickable(el, handler){
-  el.classList.add('clickable');
-  el.addEventListener('click', handler);
-  // show hover dot when ray hits this el
-  ['#rightHand','#leftHand'].forEach(sel=>{
-    const rc = document.querySelector(sel);
-    rc.addEventListener('raycaster-intersection', e=>{
-      const hit = e.detail.intersections?.find(i => i.object.el === el);
-      if (!hit) return;
-      const p = hit.point; hoverDot.object3D.position.set(p.x,p.y,p.z);
-      hoverDot.setAttribute('visible','true');
+// Initialize the app when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Hide loading screen after a short delay to ensure everything is loaded
+    setTimeout(() => {
+        loadingScreen.style.display = 'none';
+        // Start the scenario
+        startTurn(1);
+    }, 1500);
+    
+    // Set up event listeners
+    micPermissionBtn.addEventListener('click', requestMicrophonePermission);
+    
+    // Set up A-Frame component for click handling
+    AFRAME.registerComponent('click-handler', {
+        init: function () {
+            this.el.addEventListener('click', (evt) => {
+                if (this.el.classList.contains('response-btn')) {
+                    const choice = this.el.getAttribute('data-choice');
+                    handleButtonResponse(choice);
+                } else if (this.el.id === 'speakNowBtn') {
+                    if (voiceInputSection.getAttribute('visible') === 'true' && appState.micEnabled) {
+                        startVoiceInput();
+                    }
+                } else if (this.el.id === 'saveCardBtn') {
+                    exportFeedbackCard();
+                } else if (this.el.id === 'replayBtn') {
+                    resetGame();
+                }
+            });
+        }
     });
-    rc.addEventListener('raycaster-intersection-cleared', ()=> hoverDot.setAttribute('visible','false'));
-  });
-}
-bindClickable(opt1, ()=> {
-  const lbl = opt1text.getAttribute('text').value;
-  const tag = SCENARIO.rounds[S.round].options[0].tag;
-  applyResponse(lbl, tag);
-});
-bindClickable(opt2, ()=> {
-  const lbl = opt2text.getAttribute('text').value;
-  const tag = SCENARIO.rounds[S.round].options[1].tag;
-  applyResponse(lbl, tag);
-});
-bindClickable(opt3, ()=> {
-  const lbl = opt3text.getAttribute('text').value;
-  const tag = SCENARIO.rounds[S.round].options[2].tag;
-  applyResponse(lbl, tag);
-});
-bindClickable($('#btnReplay'), resetAll);
-bindClickable($('#btnSave'), exportCardPNG);
-
-// ---------- Mic UI ----------
-micPermissionBtn.addEventListener('click', async ()=>{
-  const ok = await enableMic();
-  if (ok){
-    micPermissionBtn.textContent = 'Mic Enabled';
-    micPermissionBtn.style.background = 'rgba(0, 200, 100, .95)';
-  }
+    
+    // Apply click handler to all interactive elements
+    const clickableElements = document.querySelectorAll('.clickable');
+    clickableElements.forEach(el => {
+        el.setAttribute('click-handler', '');
+    });
+    
+    // Set up hover indicators for controllers
+    setupHoverIndicators();
 });
 
-// Optional: bind “Speak Now” on desktop by pressing “S”
-window.addEventListener('keydown', async (e)=>{
-  if (e.key.toLowerCase()==='s'){
-    await doSpeakFlow();
-  }
-});
-
-async function doSpeakFlow(){
-  const ok = await enableMic(); if (!ok) return;
-  const {bucket} = await measureTone(1000);
-  S.lastTone = bucket;
-  // try STT (desktop). On Quest, STT likely unavailable—user can just pick a button.
-  const text = await runSTT(1400);
-  if (!text){ setYou(`(Voice tone: ${S.lastTone}). Pick an option or say a short line.`); return; }
-  applyResponse(text, 'VOICE');
+// Set up hover indicators for controllers
+function setupHoverIndicators() {
+    const controllers = document.querySelectorAll('[laser-controls]');
+    controllers.forEach(controller => {
+        controller.addEventListener('raycaster-intersection', function(event) {
+            const hoverIndicator = controller.querySelector('.hover-indicator');
+            if (event.detail.els.length > 0) {
+                const intersection = event.detail.intersections[0];
+                hoverIndicator.object3D.position.copy(intersection.point);
+                hoverIndicator.setAttribute('visible', true);
+            }
+        });
+        
+        controller.addEventListener('raycaster-intersection-cleared', function(event) {
+            const hoverIndicator = controller.querySelector('.hover-indicator');
+            hoverIndicator.setAttribute('visible', false);
+        });
+    });
 }
 
-// ---------- Feedback PNG export ----------
-function exportCardPNG(){
-  const cnv = $('#exportCanvas'), ctx = cnv.getContext('2d');
-  const pad=20, w=cnv.width, h=cnv.height;
-  // bg
-  ctx.fillStyle='#00152b'; ctx.fillRect(0,0,w,h);
-  // title
-  const title = cardTitle.getAttribute('text').value;
-  const body  = cardBody.getAttribute('text').value;
-  ctx.fillStyle='#a7f3d0'; ctx.font='bold 24px system-ui, Segoe UI, Roboto'; ctx.fillText(title, pad, pad+26);
-  // body (wrap)
-  ctx.fillStyle='#e7edf7'; ctx.font='16px system-ui, Segoe UI, Roboto';
-  wrap(ctx, body, w - pad*2).forEach((line,i)=> ctx.fillText(line, pad, pad+70 + i*22));
-  // dl
-  const a=document.createElement('a'); a.href=cnv.toDataURL('image/png'); a.download='bystander_coach_card.png'; a.click();
-}
-function wrap(ctx, text, width){
-  const words=text.split(/\s+/), lines=[]; let line='';
-  for (const w of words){ const t=line? line+' '+w : w; if (ctx.measureText(t).width>width){ if(line) lines.push(line); line=w; } else line=t; }
-  if (line) lines.push(line); return lines;
+// Start a new turn with enhanced NPC interactions
+function startTurn(turnNumber) {
+    appState.currentTurn = turnNumber;
+    const turnData = turnNumber === 1 ? SCENARIO_BUS_V1.turn1 : SCENARIO_BUS_V1.turn2;
+    
+    // Update UI
+    subtitle.setAttribute('value', turnData.npc_line);
+    responseButtons.setAttribute('visible', true);
+    voiceInputSection.setAttribute('visible', appState.micEnabled);
+    transcript.setAttribute('value', '');
+    
+    // Hide feedback card if visible
+    feedbackCard.setAttribute('visible', false);
+    feedbackCard.setAttribute('scale', '0 0 0');
+    
+    // Enhanced NPC interactions - Start the argument
+    startNPCArgument(turnNumber);
 }
 
-// ---------- Init ----------
-document.addEventListener('DOMContentLoaded', ()=>{
-  setTimeout(()=> { $('#loadingScreen').style.display='none'; showRound(); }, 900);
-});
+// Start NPC argument with animations and speech
+function startNPCArgument(turnNumber) {
+    const turnData = turnNumber === 1 ? SCENARIO_BUS_V1.turn1 : SCENARIO_BUS_V1.turn2;
+    
+    // Reset NPC positions
+    angryPassenger.setAttribute('position', '1 0 6');
+    busDriver.setAttribute('position', '-2 0 8');
+    
+    if (turnNumber === 1) {
+        // Show angry passenger animation
+        angryPassenger.setAttribute('animation', {
+            property: 'rotation',
+            dur: '500',
+            from: '0 0 -10',
+            to: '0 0 10',
+            direction: 'alternate',
+            repeat: 'indefinite'
+        });
+        
+        // Add aggressive movement animation
+        angryPassenger.setAttribute('animation__move', {
+            property: 'position',
+            dur: '1000',
+            from: '1 0 6',
+            to: '0.8 0 5.8',
+            direction: 'alternate',
+            repeat: 'indefinite'
+        });
+        
+        // Show passenger speech bubble
+        passengerBubble.setAttribute('visible', true);
+        passengerText.setAttribute('value', turnData.passenger_line);
+        
+        // Driver looks nervous with faster animation
+        busDriver.setAttribute('animation', {
+            property: 'rotation',
+            dur: '800',
+            from: '0 0 -5',
+            to: '0 0 5',
+            direction: 'alternate',
+            repeat: 'indefinite'
+        });
+        
+        // Driver responds after a delay
+        setTimeout(() => {
+            driverBubble.setAttribute('visible', true);
+            driverText.setAttribute('value', turnData.driver_line);
+            
+            // Passenger gets more agitated after driver responds
+            setTimeout(() => {
+                angryPassenger.setAttribute('animation', {
+                    property: 'rotation',
+                    dur: '300',
+                    from: '0 0 -15',
+                    to: '0 0 15',
+                    direction: 'alternate',
+                    repeat: 'indefinite'
+                });
+            }, 2000);
+        }, 1500);
+    } else {
+        // Turn 2: Passenger is now addressing the player more aggressively
+        angryPassenger.setAttribute('animation', {
+            property: 'rotation',
+            dur: '400',
+            from: '0 0 -15',
+            to: '0 0 15',
+            direction: 'alternate',
+            repeat: 'indefinite'
+        });
+        
+        // Move passenger closer to player
+        angryPassenger.setAttribute('animation__move', {
+            property: 'position',
+            dur: '2000',
+            from: '1 0 6',
+            to: '0.5 0 5',
+            direction: 'alternate',
+            repeat: 'indefinite'
+        });
+        
+        passengerBubble.setAttribute('visible', true);
+        passengerText.setAttribute('value', turnData.passenger_line);
+        
+        // Driver tries to calm the situation
+        setTimeout(() => {
+            driverBubble.setAttribute('visible', true);
+            driverText.setAttribute('value', turnData.driver_line);
+        }, 1000);
+    }
+}
 
-// ============== END ==============
+// Handle button response
+function handleButtonResponse(choice) {
+    // Map choice to sample response text
+    const responseMap = {
+        'Direct': "Can we please discuss this calmly? I'm sure there's a solution.",
+        'Distract': "Excuse me, does anyone know what stop we're at? I think I'm lost.",
+        'Delegate': "Driver, is there a transit authority number we can call to resolve this?"
+    };
+    
+    const responseText = responseMap[choice] || choice;
+    const tone = 'ASSERTIVE'; // Button responses are always assertive
+    
+    // Visual feedback for button click
+    const clickedButton = document.querySelector(`[data-choice="${choice}"]`);
+    if (clickedButton) {
+        clickedButton.setAttribute('color', '#f1c40f'); // Highlight color
+        setTimeout(() => {
+            clickedButton.setAttribute('color', 
+                choice === 'Direct' ? '#27ae60' : 
+                choice === 'Distract' ? '#2980b9' : '#e67e22');
+        }, 300);
+    }
+    
+    // Evaluate the response
+    evaluateResponse(responseText, tone, choice);
+}
+
+// Request microphone permission
+function requestMicrophonePermission() {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(function(stream) {
+                appState.micEnabled = true;
+                appState.mediaStream = stream;
+                micStatus.textContent = 'Microphone: Enabled';
+                micPermissionBtn.textContent = 'Microphone Enabled';
+                micPermissionBtn.style.background = 'rgba(0, 200, 0, 0.9)';
+                
+                initAudioContext(stream);
+                initSpeechRecognition();
+                voiceInputSection.setAttribute('visible', true);
+            })
+            .catch(function(err) {
+                console.error('Error accessing microphone:', err);
+                micStatus.textContent = 'Microphone: Access Denied';
+            });
+    } else {
+        micStatus.textContent = 'Microphone: Not Supported';
+    }
+}
+
+// Initialize audio context for tone analysis
+function initAudioContext(stream) {
+    appState.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    appState.analyser = appState.audioContext.createAnalyser();
+    const source = appState.audioContext.createMediaStreamSource(stream);
+    source.connect(appState.analyser);
+    appState.analyser.fftSize = 256;
+}
+
+// Initialize speech recognition
+function initSpeechRecognition() {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        appState.recognition = new SpeechRecognition();
+        appState.recognition.continuous = false;
+        appState.recognition.interimResults = false;
+        appState.recognition.lang = 'en-US';
+        
+        appState.recognition.onresult = function(event) {
+            const transcriptText = event.results[0][0].transcript;
+            transcript.setAttribute('value', `You said: ${transcriptText}`);
+            analyzeTone(transcriptText);
+        };
+        
+        appState.recognition.onerror = function(event) {
+            console.error('Speech recognition error:', event.error);
+            transcript.setAttribute('value', 'Error: Could not understand speech');
+            responseButtons.setAttribute('visible', true);
+        };
+        
+        appState.recognition.onend = function() {
+            appState.isListening = false;
+            speakNowBtn.setAttribute('color', '#9b59b6');
+        };
+    } else {
+        transcript.setAttribute('value', 'Speech recognition not supported');
+    }
+}
+
+// Start voice input
+function startVoiceInput() {
+    if (appState.isListening) return;
+    
+    appState.isListening = true;
+    speakNowBtn.setAttribute('color', '#e74c3c');
+    transcript.setAttribute('value', 'Listening... Speak now.');
+    
+    // Hide buttons during voice input
+    responseButtons.setAttribute('visible', false);
+    
+    if (appState.recognition) {
+        appState.recognition.start();
+    } else {
+        // Fallback: simulate speech input after a delay
+        setTimeout(function() {
+            const sampleResponses = [
+                "Can everyone please stay calm?",
+                "Let's try to resolve this peacefully.",
+                "I think there's been a misunderstanding."
+            ];
+            const randomResponse = sampleResponses[Math.floor(Math.random() * sampleResponses.length)];
+            transcript.setAttribute('value', `You said: ${randomResponse}`);
+            analyzeTone(randomResponse);
+        }, 2000);
+    }
+}
+
+// Analyze tone from audio
+function analyzeTone(transcriptText) {
+    if (!appState.analyser) {
+        evaluateResponse(transcriptText, 'ASSERTIVE', 'Voice');
+        return;
+    }
+    
+    const bufferLength = appState.analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    
+    setTimeout(function() {
+        appState.analyser.getByteTimeDomainData(dataArray);
+        
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) {
+            const sample = (dataArray[i] - 128) / 128;
+            sum += sample * sample;
+        }
+        const rms = Math.sqrt(sum / bufferLength);
+        
+        let zeroCrossings = 0;
+        for (let i = 1; i < bufferLength; i++) {
+            if ((dataArray[i-1] < 128 && dataArray[i] >= 128) || 
+                (dataArray[i-1] >= 128 && dataArray[i] < 128)) {
+                zeroCrossings++;
+            }
+        }
+        const zeroCrossingRate = zeroCrossings / bufferLength;
+        
+        let tone;
+        if (rms < 0.25) {
+            tone = 'CALM';
+        } else if (rms <= 0.6) {
+            tone = 'ASSERTIVE';
+        } else {
+            tone = 'AGGRESSIVE';
+        }
+        
+        if (zeroCrossingRate > 0.3) {
+            tone = 'AGGRESSIVE';
+        }
+        
+        evaluateResponse(transcriptText, tone, 'Voice');
+    }, 1000);
+}
+
+// Evaluate the player's response with enhanced NPC reactions
+function evaluateResponse(responseText, tone, inputMethod) {
+    const turnData = appState.currentTurn === 1 ? SCENARIO_BUS_V1.turn1 : SCENARIO_BUS_V1.turn2;
+    
+    // Store game data
+    appState.gameData[`turn${appState.currentTurn}`].response = responseText;
+    appState.gameData[`turn${appState.currentTurn}`].tone = tone;
+    
+    // Keyword matching
+    const lowerResponse = responseText.toLowerCase();
+    let containsGoodKeyword = false;
+    let containsBadKeyword = false;
+    
+    for (const keyword of turnData.good_keywords) {
+        if (lowerResponse.includes(keyword.toLowerCase())) {
+            containsGoodKeyword = true;
+            break;
+        }
+    }
+    
+    for (const keyword of turnData.bad_keywords) {
+        if (lowerResponse.includes(keyword.toLowerCase())) {
+            containsBadKeyword = true;
+            break;
+        }
+    }
+    
+    // Determine branch based on rules
+    let branch;
+    if (containsGoodKeyword && tone !== 'AGGRESSIVE') {
+        branch = 'STRONG';
+    } else if (tone === 'AGGRESSIVE' || containsBadKeyword) {
+        branch = 'ESCALATE';
+    } else {
+        branch = 'NEUTRAL';
+    }
+    
+    // Store branch result
+    appState.gameData[`turn${appState.currentTurn}`].branch = branch;
+    
+    // Show NPC reaction with enhanced animations
+    const npcReaction = turnData.branches[branch].npc_react;
+    subtitle.setAttribute('value', npcReaction);
+    
+    // Update NPC animations based on outcome
+    updateNPCReaction(branch);
+    
+    // Hide response options
+    responseButtons.setAttribute('visible', false);
+    voiceInputSection.setAttribute('visible', false);
+    
+    // Play appropriate sound
+    playToneSound(branch);
+    
+    // Move to next turn or show feedback
+    setTimeout(function() {
+        if (appState.currentTurn === 1) {
+            startTurn(2);
+        } else {
+            showFeedbackCard();
+        }
+    }, 4000);
+}
+
+// Update NPC reaction based on player's response
+function updateNPCReaction(branch) {
+    // Hide speech bubbles during reaction
+    passengerBubble.setAttribute('visible', false);
+    driverBubble.setAttribute('visible', false);
+    
+    if (branch === 'STRONG') {
+        // Calmer animation
+        angryPassenger.setAttribute('animation', {
+            property: 'rotation',
+            dur: '2000',
+            from: '0 0 -5',
+            to: '0 0 5',
+            direction: 'alternate',
+            repeat: 'indefinite'
+        });
+        
+        // Move passenger back to original position
+        angryPassenger.setAttribute('position', '1 0 6');
+    } else if (branch === 'ESCALATE') {
+        // More aggressive animation
+        angryPassenger.setAttribute('animation', {
+            property: 'rotation',
+            dur: '300',
+            from: '0 0 -20',
+            to: '0 0 20',
+            direction: 'alternate',
+            repeat: 'indefinite'
+        });
+        
+        // Move passenger closer to player for escalation
+        angryPassenger.setAttribute('animation__move', {
+            property: 'position',
+            dur: '1000',
+            from: '1 0 6',
+            to: '0.3 0 4.5',
+            direction: 'alternate',
+            repeat: 'indefinite'
+        });
+        
+        // Driver shows more concern
+        busDriver.setAttribute('animation', {
+            property: 'rotation',
+            dur: '500',
+            from: '0 0 -10',
+            to: '0 0 10',
+            direction: 'alternate',
+            repeat: 'indefinite'
+        });
+    } else {
+        // NEUTRAL - slight calming but still tense
+        angryPassenger.setAttribute('animation', {
+            property: 'rotation',
+            dur: '1000',
+            from: '0 0 -8',
+            to: '0 0 8',
+            direction: 'alternate',
+            repeat: 'indefinite'
+        });
+    }
+}
+
+// Play a sound based on the branch outcome
+function playToneSound(branch) {
+    if (!appState.audioContext) {
+        appState.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    
+    const oscillator = appState.audioContext.createOscillator();
+    const gainNode = appState.audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(appState.audioContext.destination);
+    
+    if (branch === 'STRONG') {
+        oscillator.frequency.setValueAtTime(523.25, appState.audioContext.currentTime);
+    } else if (branch === 'NEUTRAL') {
+        oscillator.frequency.setValueAtTime(392.00, appState.audioContext.currentTime);
+    } else {
+        oscillator.frequency.setValueAtTime(311.13, appState.audioContext.currentTime);
+    }
+    
+    gainNode.gain.setValueAtTime(0.1, appState.audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, appState.audioContext.currentTime + 0.5);
+    
+    oscillator.start(appState.audioContext.currentTime);
+    oscillator.stop(appState.audioContext.currentTime + 0.5);
+}
+
+// Show feedback card at the end of the scenario
+function showFeedbackCard() {
+    // Hide NPC speech bubbles
+    passengerBubble.setAttribute('visible', false);
+    driverBubble.setAttribute('visible', false);
+    
+    // Determine overall outcome
+    const turn1Outcome = SCENARIO_BUS_V1.turn1.branches[appState.gameData.turn1.branch].outcome;
+    const turn2Outcome = SCENARIO_BUS_V1.turn2.branches[appState.gameData.turn2.branch].outcome;
+    const isSuccess = turn1Outcome === 'cooling' || turn2Outcome === 'cooling';
+    
+    // Set feedback content based on outcome
+    if (isSuccess) {
+        feedbackResponse.setAttribute('value', `Response: "${appState.gameData.turn2.response}"`);
+        feedbackTone.setAttribute('value', `Tone: ${appState.gameData.turn2.tone}`);
+        feedbackPositive.setAttribute('value', '✓ You successfully de-escalated the situation');
+        feedbackSuggestion.setAttribute('value', 'Continue using calm, clear communication in conflicts');
+        feedbackBetterLine.setAttribute('value', 'Example: "Let\'s all take a breath and talk this through calmly"');
+        
+        // Success visual feedback
+        feedbackCard.setAttribute('class', 'feedback-success');
+    } else {
+        feedbackResponse.setAttribute('value', `Response: "${appState.gameData.turn2.response}"`);
+        feedbackTone.setAttribute('value', `Tone: ${appState.gameData.turn2.tone}`);
+        feedbackPositive.setAttribute('value', '✓ You attempted to intervene safely');
+        feedbackSuggestion.setAttribute('value', 'Work on maintaining calm under pressure; avoid aggressive language');
+        feedbackBetterLine.setAttribute('value', 'Try: "I understand frustration, but let\'s find a peaceful solution"');
+        
+        // Neutral or escalate visual feedback
+        if (turn2Outcome === 'escalate') {
+            feedbackCard.setAttribute('class', 'feedback-escalate');
+        } else {
+            feedbackCard.setAttribute('class', 'feedback-neutral');
+        }
+    }
+    
+    // Show and animate the feedback card
+    feedbackCard.setAttribute('visible', true);
+    feedbackCard.setAttribute('scale', '1 1 1');
+    
+    // Reset NPC positions and animations to calm state
+    angryPassenger.setAttribute('position', '1 0 6');
+    angryPassenger.setAttribute('animation', {
+        property: 'rotation',
+        dur: '2000',
+        from: '0 0 -5',
+        to: '0 0 5',
+        direction: 'alternate',
+        repeat: 'indefinite'
+    });
+    
+    busDriver.setAttribute('animation', {
+        property: 'rotation',
+        dur: '3000',
+        from: '0 0 -2',
+        to: '0 0 2',
+        direction: 'alternate',
+        repeat: 'indefinite'
+    });
+}
+
+// Export feedback card as PNG
+function exportFeedbackCard() {
+    // Clear canvas
+    ctx.fillStyle = '#2c3e50';
+    ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+    
+    // Add title
+    ctx.fillStyle = '#f1c40f';
+    ctx.font = 'bold 36px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Bystander Coach - Training Feedback', exportCanvas.width / 2, 50);
+    
+    // Add response
+    ctx.fillStyle = '#e74c3c';
+    ctx.font = '20px Arial';
+    wrapText(ctx, feedbackResponse.getAttribute('value'), exportCanvas.width / 2, 120, 700, 24);
+    
+    // Add tone
+    ctx.fillStyle = '#3498db';
+    ctx.font = '20px Arial';
+    ctx.fillText(feedbackTone.getAttribute('value'), exportCanvas.width / 2, 180);
+    
+    // Add positive feedback
+    ctx.fillStyle = '#27ae60';
+    ctx.font = '20px Arial';
+    wrapText(ctx, feedbackPositive.getAttribute('value'), exportCanvas.width / 2, 240, 700, 24);
+    
+    // Add suggestion
+    ctx.fillStyle = '#e67e22';
+    ctx.font = '20px Arial';
+    wrapText(ctx, feedbackSuggestion.getAttribute('value'), exportCanvas.width / 2, 300, 700, 24);
+    
+    // Add better line
+    ctx.fillStyle = '#9b59b6';
+    ctx.font = '20px Arial';
+    wrapText(ctx, feedbackBetterLine.getAttribute('value'), exportCanvas.width / 2, 360, 700, 24);
+    
+    // Add watermark
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.font = '14px Arial';
+    ctx.fillText('Bystander Coach VR Training - Bus Conflict Scenario', exportCanvas.width / 2, exportCanvas.height - 30);
+    
+    // Create download link
+    const link = document.createElement('a');
+    link.download = 'bystander-coach-feedback.png';
+    link.href = exportCanvas.toDataURL('image/png');
+    link.click();
+}
+
+// Helper function to wrap text on canvas
+function wrapText(context, text, x, y, maxWidth, lineHeight) {
+    const words = text.split(' ');
+    let line = '';
+    let testLine = '';
+    let lineCount = 0;
+    
+    for (let i = 0; i < words.length; i++) {
+        testLine = line + words[i] + ' ';
+        const metrics = context.measureText(testLine);
+        const testWidth = metrics.width;
+        
+        if (testWidth > maxWidth && i > 0) {
+            context.fillText(line, x, y);
+            line = words[i] + ' ';
+            y += lineHeight;
+            lineCount++;
+        } else {
+            line = testLine;
+        }
+    }
+    
+    context.fillText(line, x, y);
+}
+
+// Reset the game to start over
+function resetGame() {
+    // Reset game state
+    appState.currentTurn = 1;
+    appState.gameData = {
+        turn1: { response: "", tone: "", branch: "" },
+        turn2: { response: "", tone: "", branch: "" }
+    };
+    
+    // Hide feedback card
+    feedbackCard.setAttribute('visible', false);
+    feedbackCard.setAttribute('scale', '0 0 0');
+    
+    // Start over with turn 1
+    startTurn(1);
+}
