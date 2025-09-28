@@ -3,14 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Situation 3 — Museum Classroom Scenario</title>
+  <title>Situation 3 — Museum Classroom Scenario (WebXR)</title>
+  <!-- A-Frame for WebXR -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <style>
     :root {
       --bg: #0f1115;
       --panel: #171a21;
       --text: #e7e9ee;
       --muted: #9aa3b2;
-      --accent: #6ea8fe;
       --good: #46d28a;
       --bad: #ff6b6b;
       --warn: #f5c451;
@@ -99,9 +100,59 @@
       padding: 8px 12px; border-radius: 10px; cursor: pointer; font-weight: 600;
     }
     button.reset:hover { border-color: #2a3145; }
+
+    /* Keep the WebXR canvas behind the UI (desktop) */
+    a-scene { position: fixed; inset: 0; z-index: 0; }
+    .app { position: relative; z-index: 1; }
   </style>
 </head>
 <body>
+  <!-- WebXR scene (optional on desktop; fully interactive in headset) -->
+  <a-scene renderer="antialias: true" vr-mode-ui="enabled: true">
+    <a-entity light="type: ambient; intensity: 0.7"></a-entity>
+    <a-entity light="type: directional; intensity: 0.6" position="1 2 1"></a-entity>
+    <a-sky color="#0a0f1a"></a-sky>
+
+    <!-- Camera with cursor for gaze / controller ray -->
+    <a-entity id="cameraRig" position="0 1.6 0">
+      <a-entity camera look-controls>
+        <a-cursor
+          fuse="true" fuse-timeout="700"
+          material="shader: flat"
+          geometry="primitive: ring; radiusInner: 0.005; radiusOuter: 0.01"
+          position="0 0 -1">
+        </a-cursor>
+      </a-entity>
+    </a-entity>
+
+    <!-- Simple board with NPC + status text -->
+    <a-entity id="board" position="0 1.2 -2">
+      <a-entity geometry="primitive: plane; width: 1.8; height: 1.1" material="color: #1a2030; opacity: 0.95"></a-entity>
+      <a-entity id="vrNPC"
+                text="value: 😟  Agitated — \"It's not fair! I missed the dinosaur exhibit.\"; align: center; width: 2.4; color: #E7E9EE"
+                position="0 0.35 0"></a-entity>
+      <a-entity id="vrStatus"
+                text="value: Choose a response; align: center; width: 2; color: #9AA3B2"
+                position="0 -0.35 0"></a-entity>
+    </a-entity>
+
+    <!-- VR buttons -->
+    <a-entity position="0 0.5 -2">
+      <!-- Yell -->
+      <a-box id="vrYell" depth="0.05" height="0.18" width="0.6" color="#7a2a2a" position="-0.7 0 0"></a-box>
+      <a-entity text="value: Yell; align: center; width: 2; color: white" position="-0.7 0 0.03"></a-entity>
+
+      <!-- Separate -->
+      <a-box id="vrSeparate" depth="0.05" height="0.18" width="0.8" color="#1e4d3d" position="0 0 0"></a-box>
+      <a-entity text="value: Separate; align: center; width: 2; color: white" position="0 0 0.03"></a-entity>
+
+      <!-- Ignore -->
+      <a-box id="vrIgnore" depth="0.05" height="0.18" width="0.6" color="#6b5a2a" position="0.7 0 0"></a-box>
+      <a-entity text="value: Ignore; align: center; width: 2; color: white" position="0.7 0 0.03"></a-entity>
+    </a-entity>
+  </a-scene>
+
+  <!-- Original 2D app UI (unchanged behavior) -->
   <div class="app" id="app">
     <header>
       <div>
@@ -114,7 +165,6 @@
     <div class="stage">
       <!-- Left: NPC + Transcript -->
       <section class="panel" aria-live="polite">
-        <!-- NPC card that reacts -->
         <div class="npc" id="npcCard">
           <div class="avatar" id="npcAvatar" aria-hidden="true">😟</div>
           <div class="npc-lines">
@@ -125,7 +175,6 @@
           <div class="npc-feel tag warn" id="npcFeel">Agitated</div>
         </div>
 
-        <!-- Dialogue log -->
         <div class="log" id="log"></div>
         <div class="footer">
           <span class="hint" id="hint">Choose a teacher response to see what happens.</span>
@@ -153,11 +202,15 @@
     const tagsEl = document.getElementById('stateTags');
     const resetBtn = document.getElementById('resetBtn');
 
-    // NPC refs
+    // NPC refs (2D)
     const npcAvatar = document.getElementById('npcAvatar');
     const npcLine = document.getElementById('npcLine');
     const npcAside = document.getElementById('npcAside');
     const npcFeel = document.getElementById('npcFeel');
+
+    // VR refs
+    const vrNPC = document.querySelector('#vrNPC');
+    const vrStatus = document.querySelector('#vrStatus');
 
     const initialTranscript = [
       { who: "Student A (frustrated)", text: "It's not fair! Everyone else got to see the dinosaur exhibit, and I didn't!" },
@@ -178,7 +231,8 @@
           { cls: "", text: "Emotional safety ↓" }
         ],
         status: { text: "Outcome: Escalation (not recommended in this context)", kind: "bad" },
-        npc: { emoji: "😠", feelClass: "bad", feelText: "Upset", line: "\"Please stop yelling…\"", aside: "Heart rate ↑, fight/flight" }
+        npc: { emoji: "😠", feelClass: "bad", feelText: "Upset", line: "\"Please stop yelling…\"", aside: "Heart rate ↑, fight/flight" },
+        vrNPC: "😠  Upset — \"Please stop yelling…\""
       },
       separate: {
         teacher: "Alright, let's step aside for a moment to talk. That sounds so frustrating—let's make sure you don't miss out again.",
@@ -191,7 +245,8 @@
           { cls: "", text: "Emotional safety ↑" }
         ],
         status: { text: "Outcome: De-escalation (recommended)", kind: "ok" },
-        npc: { emoji: "🙂", feelClass: "ok", feelText: "Calmer", line: "\"Thanks for helping me catch up.\"", aside: "Breathing steadies" }
+        npc: { emoji: "🙂", feelClass: "ok", feelText: "Calmer", line: "\"Thanks for helping me catch up.\"", aside: "Breathing steadies" },
+        vrNPC: "🙂  Calmer — \"Thanks for helping me catch up.\""
       },
       ignore: {
         teacher: "(You choose to ignore the situation.)",
@@ -204,7 +259,8 @@
           { cls: "bad", text: "Harm risk ↑" }
         ],
         status: { text: "Outcome: Avoidance leading to escalation (not recommended)", kind: "bad" },
-        npc: { emoji: "😢", feelClass: "warn", feelText: "Distressed", line: "\"This is getting worse…\"", aside: "Feels unsafe" }
+        npc: { emoji: "😢", feelClass: "warn", feelText: "Distressed", line: "\"This is getting worse…\"", aside: "Feels unsafe" },
+        vrNPC: "😢  Distressed — \"This is getting worse…\""
       }
     };
 
@@ -236,14 +292,19 @@
 
     function setStatus(text, kind="") {
       statusEl.innerHTML = `<div class="tag ${kind}">${text}</div>`;
+      // Mirror to VR
+      vrStatus.setAttribute('text', `value: ${text}; align: center; width: 2; color: ${kind==='ok'?'#46D28A':'#FF6B6B'}`);
     }
 
-    function updateNPC({ emoji, feelClass, feelText, line, aside }) {
+    function updateNPC({ emoji, feelClass, feelText, line, aside }, vrText) {
+      // 2D
       npcAvatar.textContent = emoji;
       npcFeel.className = `npc-feel tag ${feelClass}`;
       npcFeel.textContent = feelText;
       npcLine.textContent = line;
       npcAside.textContent = aside;
+      // VR
+      vrNPC.setAttribute('text', `value: ${vrText}; align: center; width: 2.4; color: #E7E9EE`);
     }
 
     function renderInitial() {
@@ -255,6 +316,9 @@
       npcAside.textContent = "Waiting for your response…";
       initialTranscript.forEach(addLine);
       hintEl.textContent = "Choose a teacher response to see what happens.";
+      // VR initial
+      vrNPC.setAttribute('text', 'value: 😟  Agitated — "It\'s not fair! I missed the dinosaur exhibit."; align: center; width: 2.4; color: #E7E9EE');
+      vrStatus.setAttribute('text', 'value: Choose a response; align: center; width: 2; color: #9AA3B2');
     }
 
     function play(actionKey) {
@@ -266,12 +330,21 @@
       setTags(action.tags);
       hintEl.textContent = "Outcome shown. Use Restart to try another path.";
       setStatus(action.status.text, action.status.kind);
-      updateNPC(action.npc);
+      updateNPC(action.npc, action.vrNPC);
     }
 
+    // Wire 2D chips
     document.querySelectorAll('.chip').forEach(chip => {
       chip.addEventListener('click', () => play(chip.dataset.action));
     });
+
+    // Wire VR boxes
+    const vrYell = document.querySelector('#vrYell');
+    const vrSeparate = document.querySelector('#vrSeparate');
+    const vrIgnore = document.querySelector('#vrIgnore');
+    vrYell.addEventListener('click', () => play('yell'));
+    vrSeparate.addEventListener('click', () => play('separate'));
+    vrIgnore.addEventListener('click', () => play('ignore'));
 
     resetBtn.addEventListener('click', renderInitial);
     renderInitial();
