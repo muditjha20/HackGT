@@ -1,5 +1,5 @@
 // ===============================
-// Gift Shop Situation — Reactive NPC + Strong Logic (No Overlap version)
+// Gift Shop Situation — Reactive NPC + Strong Logic (Improved UI version)
 // ===============================
 
 // -------- Background tension audio (subtle) --------
@@ -49,9 +49,9 @@ Him: “Oh come on! I already waste so much money at these gift shops after wait
           good: [], bad: ["whining","child","no refunds","get out"] }
       ],
       replies: {
-        STRONG:   ["…Alright. I just want one that’s not broken.", "Fine, can you swap it then?", "Okay—just fix it."],
-        NEUTRAL:  ["Huh? You’re wasting my time.", "What does that even mean?", "So are you going or not?"],
-        ESCALATE: ["Manager. Now.", "Unbelievable—are you serious?", "You’re not listening at all."]
+        STRONG:   ["…Alright. I just want one that's not broken.", "Fine, can you swap it then?", "Okay—just fix it."],
+        NEUTRAL:  ["Huh? You're wasting my time.", "What does that even mean?", "So are you going or not?"],
+        ESCALATE: ["Manager. Now.", "Unbelievable—are you serious?", "You're not listening at all."]
       }
     },
     {
@@ -69,29 +69,29 @@ Him: “Oh come on! I already waste so much money at these gift shops after wait
           good: [], bad: ["look before you buy","your fault"] }
       ],
       replies: {
-        STRONG:   ["Okay, replace it then.", "Refund. I don’t want it anymore.", "Fine—just make it quick."],
+        STRONG:   ["Okay, replace it then.", "Refund. I don't want it anymore.", "Fine—just make it quick."],
         NEUTRAL:  ["Tch. Whatever.", "…Hurry up.", "Okay?"],
-        ESCALATE: ["You’re blaming me?", "Wow. Call your manager.", "This is ridiculous."]
+        ESCALATE: ["You're blaming me?", "Wow. Call your manager.", "This is ridiculous."]
       }
     },
     {
       name: 'Round 3 — Close it safely',
       npc_line: "Customer: “Can we just finish this?”",
       options: [
-        { label: "“Absolutely. I’ll process that now and throw in a protective wrap. Thanks for letting me fix it.”",
+        { label: "“Absolutely. I'll process that now and throw in a protective wrap. Thanks for letting me fix it.”",
           tag: "CLOSE_WITH_THANKS", effect: "DEESCALATE",
           good: ["process now","protective wrap","thanks"], bad: [] },
-        { label: "“Let’s step to the side counter so I can finish this without holding up the line.”",
+        { label: "“Let's step to the side counter so I can finish this without holding up the line.”",
           tag: "MOVE_ASIDE", effect: "DEESCALATE",
           good: ["step to the side","without holding up the line"], bad: [] },
-        { label: "“Keep yelling and I’ll refuse service.”",
+        { label: "“Keep yelling and I'll refuse service.”",
           tag: "THREAT_REFUSE", effect: "ESCALATE",
           good: [], bad: ["refuse service","keep yelling"] }
       ],
       replies: {
         STRONG:   ["…Alright.", "Thanks.", "Okay, fine."],
         NEUTRAL:  ["Just do it.", "Hurry up.", "Whatever."],
-        ESCALATE: ["Oh really? Try me.", "Get your boss.", "I’ll leave a review you won’t like."]
+        ESCALATE: ["Oh really? Try me.", "Get your boss.", "I'll leave a review you won't like."]
       }
     },
     {
@@ -99,7 +99,7 @@ Him: “Oh come on! I already waste so much money at these gift shops after wait
       npc_line: "(The situation is settled. Take a breath. Note one thing you did well and one improvement.)",
       options: [
         { label: "“Thanks for your patience—have a good rest of your visit.”", tag: "AFTERCARE", effect: "DEESCALATE", good: ["thanks","patience"], bad: [] },
-        { label: "“If anything else comes up, I’m right here.”", tag: "AFTERCARE", effect: "DEESCALATE", good: ["right here"], bad: [] },
+        { label: "“If anything else comes up, I'm right here.”", tag: "AFTERCARE", effect: "DEESCALATE", good: ["right here"], bad: [] },
         { label: "“Next!” (ignore the customer while they finish)", tag: "AFTERCARE_BAD", effect: "ESCALATE", good: [], bad: ["next!"] }
       ],
       replies: {
@@ -191,30 +191,30 @@ function playCustomerClip(name, dur=900){
   // Fallback head gestures in case clip names differ
   npcCust.setAttribute('animation-mixer', `clip: ${name}; loop: once; clampWhenFinished: true`);
   if (name === 'No') {
-    npcCust.setAttribute('animation__shake', 'property: rotation; to: 0 168 0; dir: alternate; dur: 120; loop: 3; easing: easeOutQuad');
+    npcCust.setAttribute('animation__shake', 'property: rotation; to: 0 158 0; dir: alternate; dur: 120; loop: 3; easing: easeOutQuad');
     setTimeout(()=> npcCust.removeAttribute('animation__shake'), dur);
   } else if (name === 'Yes') {
-    npcCust.setAttribute('animation__nod', 'property: rotation; to: -6 170 0; dir: alternate; dur: 140; loop: 3; easing: easeInOutQuad');
+    npcCust.setAttribute('animation__nod', 'property: rotation; to: -6 160 0; dir: alternate; dur: 140; loop: 3; easing: easeInOutQuad');
     setTimeout(()=> npcCust.removeAttribute('animation__nod'), dur);
   }
   setTimeout(()=> npcCust.setAttribute('animation-mixer', 'clip: Idle; loop: repeat'), dur+150);
 }
 
-function moveCustomerTo(x=-1.15, z=-2.55, dur=360){
+function moveCustomerTo(x=-1.0, z=-3.5, dur=360){
   npcCust.setAttribute('animation__move', `property: position; to: ${x} 0 ${z}; dur:${dur}; easing:easeOutQuad`);
 }
 
 function npcLeanTowardCounter(on=true){
   if (on){
-    npcCust.setAttribute('animation__lean', 'property: rotation; to: -6 170 0; dir: alternate; dur: 700; loop: true; easing: easeInOutSine');
+    npcCust.setAttribute('animation__lean', 'property: rotation; to: -6 160 0; dir: alternate; dur: 700; loop: true; easing: easeInOutSine');
   } else {
     npcCust.removeAttribute('animation__lean');
-    npcCust.setAttribute('rotation', '0 170 0');
+    npcCust.setAttribute('rotation', '0 160 0');
   }
 }
 
 function managerGlance(){
-  npcMgr.setAttribute('animation__glance', 'property: rotation; to: -6 150 0; dir: alternate; dur: 140; loop: 4; easing: easeInOutQuad');
+  npcMgr.setAttribute('animation__glance', 'property: rotation; to: -6 140 0; dir: alternate; dur: 140; loop: 4; easing: easeInOutQuad');
   setTimeout(()=> npcMgr.removeAttribute('animation__glance'), 900);
 }
 
@@ -301,16 +301,16 @@ function adjustMood(branchKey){
   if (branchKey==='STRONG'){ S.mood = Math.min(3, S.mood+1); Tension.down(); }
   if (branchKey==='ESCALATE'){ S.mood = Math.max(-3, S.mood-1); Tension.up(); }
 
-  // Distances + expressions keyed to mood (further left/back than before)
-  if (S.mood<=-1){ setCustomerExpression('angry', 0.95); moveCustomerTo(-1.0, -2.2, 260); npcLeanTowardCounter(true); }
-  else if (S.mood>=2){ setCustomerExpression('happy', 0.6); moveCustomerTo(-1.25, -2.8, 300); npcLeanTowardCounter(false); }
-  else { setCustomerExpression('neutral', 0.15); moveCustomerTo(-1.15, -2.55, 280); npcLeanTowardCounter(true); }
+  // Distances + expressions keyed to mood (updated positions)
+  if (S.mood<=-1){ setCustomerExpression('angry', 0.95); moveCustomerTo(-1.0, -3.3, 260); npcLeanTowardCounter(true); }
+  else if (S.mood>=2){ setCustomerExpression('happy', 0.6); moveCustomerTo(-1.0, -3.7, 300); npcLeanTowardCounter(false); }
+  else { setCustomerExpression('neutral', 0.15); moveCustomerTo(-1.0, -3.5, 280); npcLeanTowardCounter(true); }
 }
 
 function reactBranch(branchKey){
   if (branchKey==='ESCALATE'){ playCustomerClip('No', 900); managerGlance(); }
   if (branchKey==='STRONG'){   playCustomerClip('Yes', 900); }
-  if (branchKey==='NEUTRAL'){  npcCust.setAttribute('animation__shrug','property: rotation; to: 0 172 0; dir: alternate; dur: 220; loop: 2; easing: easeInOutQuad'); setTimeout(()=> npcCust.removeAttribute('animation__shrug'), 600); }
+  if (branchKey==='NEUTRAL'){  npcCust.setAttribute('animation__shrug','property: rotation; to: 0 162 0; dir: alternate; dur: 220; loop: 2; easing: easeInOutQuad'); setTimeout(()=> npcCust.removeAttribute('animation__shrug'), 600); }
 }
 
 // -------- UI helpers --------
@@ -331,11 +331,11 @@ function showRound(){
   setYou('');
   labelOptions(S.round);
 
-  // Round-specific staging (values match the "further left/back" layout)
-  if (S.round===0){ setCustomerExpression('angry', 0.85); moveCustomerTo(-1.05,-2.35,320); managerGlance(); }
-  if (S.round===1){ moveCustomerTo(-1.15,-2.55,300); }
-  if (S.round===2){ moveCustomerTo(-1.2,-2.65,300); }
-  if (S.round===3){ setCustomerExpression('happy', 0.5); moveCustomerTo(-1.25,-2.8,300); }
+  // Updated positions for better visibility
+  if (S.round===0){ setCustomerExpression('angry', 0.85); moveCustomerTo(-1.0,-3.5,320); managerGlance(); }
+  if (S.round===1){ moveCustomerTo(-1.0,-3.5,300); }
+  if (S.round===2){ moveCustomerTo(-1.0,-3.5,300); }
+  if (S.round===3){ setCustomerExpression('happy', 0.5); moveCustomerTo(-1.0,-3.5,300); }
 }
 
 function applyResponse({text='', chosenTag='', chosenEffect=null}){
@@ -364,8 +364,8 @@ function endGame(){
   const last = S.path[S.path.length-1] || {};
   const title = win ? '✅ You resolved it professionally.' : '⚠️ Try an empathic, concrete fix next time.';
   const good  = win ? 'What worked:\n• Empathy + clear choices (refund/replace).\n• No minimizing, no insults.\n• Kept voice steady.' :
-                      'Try this:\n• Start with empathy (“I’m sorry… I understand”).\n• Offer concrete options you can deliver.\n• Avoid “calm down”, labels, threats.';
-  const better = '“I’m really sorry this happened—refund or replace, your choice.”\n“Let’s step to the side so I can fix this quickly.”';
+                      'Try this:\n• Start with empathy ("I'm sorry… I understand").\n• Offer concrete options you can deliver.\n• Avoid "calm down", labels, threats.';
+  const better = '"I'm really sorry this happened—refund or replace, your choice."\n"Let's step to the side so I can fix this quickly."';
 
   // Keep the HUD visible; show the card as an overlay (also HUD)
   feedback.setAttribute('visible', true);
@@ -373,7 +373,7 @@ function endGame(){
 
   cardTitle.setAttribute('text','value', title);
   cardBody.setAttribute('text','value',
-    `Last response: “${last.text||'—'}”\nTone: ${last.tone||S.lastTone}\n\n${good}\n\nBetter lines:\n${better}`);
+    `Last response: "${last.text||'—'}"\nTone: ${last.tone||S.lastTone}\n\n${good}\n\nBetter lines:\n${better}`);
 }
 
 // -------- Buttons, hover, mic, PNG --------

@@ -6,7 +6,7 @@
     name="viewport"
     content="width=device-width, initial-scale=1.0, viewport-fit=cover"
   />
-  <title>Bystander Coach — Gift Shop De-Escalation (Right HUD)</title>
+  <title>Bystander Coach — Gift Shop De-Escalation (Improved UI)</title>
 
   <!-- A-Frame core -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
@@ -47,7 +47,7 @@
     vr-mode-ui="enabled: true"
   >
     <!-- Camera rig + cursor + controller rays -->
-    <a-entity id="rig" position="0 1.6 2.25">
+    <a-entity id="rig" position="0 1.6 3.0"> <!-- Moved camera back -->
       <a-entity id="camera" camera look-controls wasd-controls="acceleration: 10">
         <a-entity
           id="gazeCursor"
@@ -58,12 +58,12 @@
           raycaster="objects: .clickable"
         ></a-entity>
 
-        <!-- ===== CAMERA-ATTACHED HUD (moves with you, no world overlap) ===== -->
+        <!-- ===== CAMERA-ATTACHED HUD (moved up and smaller) ===== -->
 
-        <!-- UI Panel (RIGHT side of view) -->
-        <a-entity id="uiPanel" position="0.62 -0.06 -0.95" rotation="0 0 0" scale="1 1 1">
+        <!-- UI Panel (TOP-RIGHT corner, smaller) -->
+        <a-entity id="uiPanel" position="0.45 0.25 -0.8" rotation="0 0 0" scale="0.8 0.8 0.8">
           <a-entity geometry="primitive: plane; width: 1.00; height: 0.72"
-                    material="color: #071426; opacity: .98; side: double; shader: flat; depthTest: false; depthWrite: false"></a-entity>
+                    material="color: #071426; opacity: .92; side: double; shader: flat; transparent: true"></a-entity>
 
           <a-entity id="subtitle" position="-0.48 0.20 0.002"
                     text="value: ; color: #e7edf7; width: 0.92; wrapCount: 28; align: left; lineHeight: 1.15"></a-entity>
@@ -74,7 +74,7 @@
           <a-entity id="opt1" class="clickable option"
                     geometry="primitive: plane; width: 0.92; height: 0.10"
                     position="0 -0.08 0.002"
-                    material="color: #0d203a; shader: flat; depthTest: false; depthWrite: false">
+                    material="color: #0d203a; shader: flat">
             <a-entity id="opt1text" position="-0.45 0 0.001"
               text="value: ; color: #e5efff; width: 0.86; wrapCount: 26; align: left; lineHeight: 1.1"></a-entity>
           </a-entity>
@@ -82,7 +82,7 @@
           <a-entity id="opt2" class="clickable option"
                     geometry="primitive: plane; width: 0.92; height: 0.10"
                     position="0 -0.24 0.002"
-                    material="color: #0c1b31; shader: flat; depthTest: false; depthWrite: false">
+                    material="color: #0c1b31; shader: flat">
             <a-entity id="opt2text" position="-0.45 0 0.001"
               text="value: ; color: #dbeafe; width: 0.86; wrapCount: 26; align: left; lineHeight: 1.1"></a-entity>
           </a-entity>
@@ -90,30 +90,30 @@
           <a-entity id="opt3" class="clickable option"
                     geometry="primitive: plane; width: 0.92; height: 0.10"
                     position="0 -0.40 0.002"
-                    material="color: #0a1627; shader: flat; depthTest: false; depthWrite: false">
+                    material="color: #0a1627; shader: flat">
             <a-entity id="opt3text" position="-0.45 0 0.001"
               text="value: ; color: #c7d2fe; width: 0.86; wrapCount: 26; align: left; lineHeight: 1.1"></a-entity>
           </a-entity>
         </a-entity>
 
-        <!-- Feedback Card (centered HUD) -->
-        <a-entity id="feedbackCard" visible="false" position="0 -0.06 -0.9" scale="0 0 0">
-          <a-entity geometry="primitive: plane; width: 1.22; height: 0.78"
-                    material="color: #00152b; opacity: .98; side: double; shader: flat; depthTest: false; depthWrite: false"></a-entity>
-          <a-entity id="cardTitle" position="-0.58 0.23 0.002"
-                    text="value: ; color: #a7f3d0; width: 1.12; wrapCount: 34; align: left"></a-entity>
-          <a-entity id="cardBody" position="-0.58 0.06 0.002"
-                    text="value: ; color: #e7edf7; width: 1.12; wrapCount: 34; align: left"></a-entity>
+        <!-- Feedback Card (centered but smaller) -->
+        <a-entity id="feedbackCard" visible="false" position="0 0.1 -0.8" scale="0 0 0">
+          <a-entity geometry="primitive: plane; width: 1.1; height: 0.7"
+                    material="color: #00152b; opacity: .95; side: double; shader: flat; transparent: true"></a-entity>
+          <a-entity id="cardTitle" position="-0.52 0.23 0.002"
+                    text="value: ; color: #a7f3d0; width: 1.0; wrapCount: 34; align: left"></a-entity>
+          <a-entity id="cardBody" position="-0.52 0.06 0.002"
+                    text="value: ; color: #e7edf7; width: 1.0; wrapCount: 34; align: left"></a-entity>
           <a-entity id="btnSave" class="clickable"
-                    geometry="primitive: plane; width: 0.52; height: 0.11"
-                    position="-0.28 -0.24 0.002"
-                    material="color: #0f2d4a; shader: flat; depthTest: false; depthWrite: false">
+                    geometry="primitive: plane; width: 0.48; height: 0.11"
+                    position="-0.25 -0.24 0.002"
+                    material="color: #0f2d4a; shader: flat">
             <a-entity text="value: Save Card (PNG); color:#e0f2fe; width: 0.46; align: center"></a-entity>
           </a-entity>
           <a-entity id="btnReplay" class="clickable"
-                    geometry="primitive: plane; width: 0.52; height: 0.11"
-                    position="0.28 -0.24 0.002"
-                    material="color: #0b2b33; shader: flat; depthTest: false; depthWrite: false">
+                    geometry="primitive: plane; width: 0.48; height: 0.11"
+                    position="0.25 -0.24 0.002"
+                    material="color: #0b2b33; shader: flat">
             <a-entity text="value: Replay; color:#d1fae5; width: 0.46; align: center"></a-entity>
           </a-entity>
         </a-entity>
@@ -126,20 +126,21 @@
     </a-entity>
 
     <!-- Lighting + floor -->
-    <a-entity light="type: hemisphere; color: #fff; groundColor: #223; intensity: 1.0"></a-entity>
+    <a-entity light="type: hemisphere; color: #fff; groundColor: #223; intensity: 1.2"></a-entity>
+    <a-entity light="type: directional; color: #fff; intensity: 0.6; position: 2 5 3"></a-entity>
     <a-entity geometry="primitive: plane; width: 40; height: 40" rotation="-90 0 0"
               material="color: #101827; roughness: 1"></a-entity>
 
-    <!-- Gift shop COUNTER (wider & a bit farther) -->
+    <!-- Gift shop COUNTER (positioned better) -->
     <a-box id="counter"
-           position="0 0.85 -1.90"
+           position="0 0.85 -3.0"
            width="2.40" height="0.9" depth="0.7"
            material="color:#1b2333; metalness:0.1; roughness:0.9"></a-box>
 
-    <!-- NPC Customer (near center-left, clearly visible) -->
+    <!-- NPC Customer (better positioned - further back and to the side) -->
     <a-entity id="npcCustomer"
       gltf-model="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/RobotExpressive/glTF-Binary/RobotExpressive.glb"
-      position="-0.35 0 -2.40" rotation="0 175 0" scale="0.8 0.8 0.8"
+      position="-1.0 0 -3.5" rotation="0 160 0" scale="1.0 1.0 1.0"
       animation-mixer="clip: Idle; loop: repeat"
       look-at="#camera">
     </a-entity>
@@ -147,7 +148,7 @@
     <!-- Manager stand-in (authority) to RIGHT/back -->
     <a-entity id="npcManager"
       gltf-model="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CesiumMan/glTF-Binary/CesiumMan.glb"
-      position="1.8 0 -3.4" rotation="0 150 0" scale="0.95 0.95 0.95"
+      position="2.0 0 -4.5" rotation="0 140 0" scale="1.0 1.0 1.0"
       animation-mixer="clip: idle; loop: repeat"
       look-at="#camera">
     </a-entity>
